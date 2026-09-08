@@ -62,25 +62,39 @@ function createViewportLayouts(viewportWidth: number, viewportHeight: number) {
     };
   };
 
-  const hiddenLeft = (top: number) => ({ ...region(0, top, 1 / 3, 1 / 2), x: -viewportWidth, visible: false });
-  const hiddenRight = (top: number) => ({ ...region(2 / 3, top, 1 / 3, 1 / 2), x: viewportWidth, visible: false });
-
   return [
-    [region(0, 0, 1 / 3, 1), region(1 / 3, 0, 1 / 3, 1), region(2 / 3, 0, 1 / 3, 1), hiddenRight(1 / 2)],
-    [region(0, 0, 2 / 3, 1 / 2), region(0, 1 / 2, 1 / 3, 1 / 2), region(1 / 3, 1 / 2, 1 / 3, 1 / 2), region(2 / 3, 0, 1 / 3, 1)],
-    [region(0, 0, 1 / 3, 1), region(1 / 3, 0, 2 / 3, 1), hiddenRight(0), hiddenLeft(1 / 2)],
-    [region(0, 0, 1, 2 / 3), region(0, 2 / 3, 1, 1 / 3), hiddenRight(0), hiddenLeft(1 / 2)],
-    [region(0, 0, 1 / 2, 1 / 2), region(1 / 2, 0, 1 / 2, 1 / 2), region(0, 1 / 2, 1 / 2, 1 / 2), region(1 / 2, 1 / 2, 1 / 2, 1 / 2)],
+    [
+      region(0, 0, 1 / 3, 1 / 3), region(0, 1 / 3, 1 / 3, 2 / 3), region(1 / 3, 0, 1 / 3, 2 / 3),
+      region(1 / 3, 2 / 3, 1 / 3, 1 / 3), region(2 / 3, 0, 1 / 3, 1 / 3), region(2 / 3, 1 / 3, 1 / 3, 2 / 3),
+    ],
+    [
+      region(0, 0, 2 / 3, 1 / 2), region(0, 1 / 2, 1 / 3, 1 / 4), region(1 / 3, 1 / 2, 1 / 3, 1 / 4),
+      region(0, 3 / 4, 1 / 3, 1 / 4), region(1 / 3, 3 / 4, 1 / 3, 1 / 4), region(2 / 3, 0, 1 / 3, 1),
+    ],
+    [
+      region(0, 0, 1 / 3, 1), region(1 / 3, 0, 2 / 3, 1 / 3), region(1 / 3, 1 / 3, 1 / 3, 1 / 3),
+      region(2 / 3, 1 / 3, 1 / 3, 1 / 3), region(1 / 3, 2 / 3, 1 / 3, 1 / 3), region(2 / 3, 2 / 3, 1 / 3, 1 / 3),
+    ],
+    [
+      region(0, 0, 1 / 3, 1 / 2), region(1 / 3, 0, 1 / 3, 1 / 2), region(2 / 3, 0, 1 / 3, 1 / 2),
+      region(0, 1 / 2, 2 / 3, 1 / 2), region(2 / 3, 1 / 2, 1 / 3, 1 / 4), region(2 / 3, 3 / 4, 1 / 3, 1 / 4),
+    ],
+    [
+      region(0, 0, 1 / 2, 1 / 4), region(0, 1 / 4, 1 / 2, 1 / 4), region(1 / 2, 0, 1 / 2, 1 / 2),
+      region(0, 1 / 2, 1 / 2, 1 / 2), region(1 / 2, 1 / 2, 1 / 2, 1 / 4), region(1 / 2, 3 / 4, 1 / 2, 1 / 4),
+    ],
   ];
 }
 
 function createMessyRects(viewportWidth: number, viewportHeight: number): WindowRect[] {
   const bottom = -viewportHeight * 0.34;
   return [
-    { x: -viewportWidth * 0.28, y: bottom, width: viewportWidth * 0.22, height: viewportHeight * 0.23, visible: true },
-    { x: -viewportWidth * 0.08, y: bottom + 0.3, width: viewportWidth * 0.2, height: viewportHeight * 0.2, visible: true },
-    { x: viewportWidth * 0.14, y: bottom - 0.1, width: viewportWidth * 0.24, height: viewportHeight * 0.24, visible: true },
-    { x: viewportWidth * 0.31, y: bottom + 0.4, width: viewportWidth * 0.18, height: viewportHeight * 0.19, visible: true },
+    { x: -viewportWidth * 0.32, y: bottom + 0.2, width: viewportWidth * 0.2, height: viewportHeight * 0.22, visible: true },
+    { x: -viewportWidth * 0.2, y: bottom - 0.25, width: viewportWidth * 0.18, height: viewportHeight * 0.19, visible: true },
+    { x: -viewportWidth * 0.06, y: bottom + 0.35, width: viewportWidth * 0.22, height: viewportHeight * 0.24, visible: true },
+    { x: viewportWidth * 0.1, y: bottom - 0.2, width: viewportWidth * 0.2, height: viewportHeight * 0.2, visible: true },
+    { x: viewportWidth * 0.23, y: bottom + 0.25, width: viewportWidth * 0.19, height: viewportHeight * 0.23, visible: true },
+    { x: viewportWidth * 0.34, y: bottom - 0.1, width: viewportWidth * 0.17, height: viewportHeight * 0.18, visible: true },
   ];
 }
 
@@ -150,6 +164,17 @@ function easeOutExpo(value: number) {
   return value === 1 ? 1 : 1 - Math.pow(2, -10 * value);
 }
 
+function createSlotAssignments(count: number) {
+  const assignments = Array.from({ length: count }, (_, index) => index);
+  const swapCount = Math.random() < 0.7 ? 1 : 2;
+  for (let swapIndex = 0; swapIndex < swapCount; swapIndex += 1) {
+    const first = Math.floor(Math.random() * count);
+    const second = (first + 1 + Math.floor(Math.random() * (count - 1))) % count;
+    [assignments[first], assignments[second]] = [assignments[second]!, assignments[first]!];
+  }
+  return assignments;
+}
+
 export function SpatialWindows() {
   const mountRef = useRef<HTMLDivElement>(null);
 
@@ -167,7 +192,14 @@ export function SpatialWindows() {
     camera.position.z = 10;
     let layouts = createViewportLayouts(viewportWidth, viewportHeight);
     let messyRects = createMessyRects(viewportWidth, viewportHeight);
-    let layoutIndex = -1;
+    const openingLayoutChoices = [0, 1, 2, 3, 4];
+    const openingLayoutIndex = openingLayoutChoices[Math.floor(Math.random() * openingLayoutChoices.length)]!;
+    let layoutIndex = reducedMotion ? openingLayoutIndex : -1;
+    let activeAssignments = Array.from({ length: messyRects.length }, (_, index) => index);
+    const targetRectFor = (targetLayoutIndex: number, windowIndex: number) => {
+      const layout = layouts[targetLayoutIndex]!;
+      return layout[activeAssignments[windowIndex]!]!;
+    };
 
     let renderer: WebGLRenderer;
     try {
@@ -184,7 +216,7 @@ export function SpatialWindows() {
     const windowStates: WindowState[] = messyRects.map((messyRect, windowIndex) => {
       const windowShape = createWindow();
       const baseOpacity = 1;
-      const initialRect = reducedMotion ? layouts[0]![windowIndex]! : messyRect;
+      const initialRect = reducedMotion ? targetRectFor(openingLayoutIndex, windowIndex) : messyRect;
       const initialOpacity = reducedMotion && initialRect.visible ? baseOpacity : 0;
       setWindowRect(windowShape, initialRect);
       windowShape.group.rotation.z = reducedMotion ? 0 : (windowIndex % 2 === 0 ? -1 : 1) * (0.08 + windowIndex * 0.02);
@@ -221,10 +253,9 @@ export function SpatialWindows() {
       camera.updateProjectionMatrix();
       layouts = createViewportLayouts(viewportWidth, viewportHeight);
       messyRects = createMessyRects(viewportWidth, viewportHeight);
-      const activeRects = layoutIndex >= 0 ? layouts[layoutIndex]! : messyRects;
       windowStates.forEach((windowState, windowIndex) => {
         windowState.group.visible = width >= 620 || windowIndex < 3;
-        const rect = activeRects[windowIndex]!;
+        const rect = layoutIndex >= 0 ? targetRectFor(layoutIndex, windowIndex) : messyRects[windowIndex]!;
         windowState.currentRect = copyRect(rect);
         windowState.fromRect = copyRect(rect);
         windowState.targetRect = copyRect(rect);
@@ -243,18 +274,19 @@ export function SpatialWindows() {
     resizeObserver.observe(mount);
     resize();
 
-    const transitionDuration = 0.82;
-    const transitionStagger = 0.32;
+    const transitionDuration = 0.72;
+    const transitionStagger = 0.16;
     const transitionSpan = transitionDuration + transitionStagger * (windowStates.length - 1);
-    const holdDuration = 2.5;
+    const holdDuration = 1.8;
     const clock = new Clock();
     let animationFrame = 0;
-    let nextLayoutAt = 0.45;
+    let nextLayoutAt = 1.5;
 
     const beginLayout = (nextLayoutIndex: number, startedAt: number) => {
       const layout = layouts[nextLayoutIndex]!;
+      activeAssignments = createSlotAssignments(windowStates.length);
       windowStates.forEach((windowState, windowIndex) => {
-        const targetRect = layout[windowIndex]!;
+        const targetRect = layout[activeAssignments[windowIndex]!]!;
         windowState.fromRect = copyRect(windowState.currentRect);
         windowState.targetRect = copyRect(targetRect);
         windowState.fromOpacity = windowState.currentOpacity;
@@ -269,8 +301,23 @@ export function SpatialWindows() {
     const animate = () => {
       const elapsed = clock.getElapsedTime();
 
+      if (!reducedMotion && layoutIndex === -1) {
+        windowStates.forEach((windowState, windowIndex) => {
+          const fadeProgress = easeOutExpo(Math.min(Math.max((elapsed - windowIndex * 0.08) / 0.42, 0), 1));
+          const floatingRect = copyRect(messyRects[windowIndex]!);
+          floatingRect.y += Math.sin(elapsed * 1.7 + windowIndex * 0.9) * 0.06;
+          windowState.currentRect = floatingRect;
+          windowState.currentOpacity = fadeProgress;
+          windowState.group.rotation.z = windowState.fromRotation + Math.sin(elapsed * 1.3 + windowIndex) * 0.012;
+          setWindowRect(windowState, floatingRect);
+          windowState.materials.forEach((material) => {
+            material.opacity = fadeProgress;
+          });
+        });
+      }
+
       if (!reducedMotion && elapsed >= nextLayoutAt) {
-        layoutIndex = (layoutIndex + 1) % layouts.length;
+        layoutIndex = layoutIndex === -1 ? openingLayoutIndex : (layoutIndex + 1) % layouts.length;
         beginLayout(layoutIndex, elapsed);
         nextLayoutAt = elapsed + transitionSpan + holdDuration;
       }
@@ -281,6 +328,9 @@ export function SpatialWindows() {
           const rawProgress = Math.min((elapsed - windowState.transitionStartedAt) / transitionDuration, 1);
           const progress = easeOutExpo(rawProgress);
           windowState.currentRect = interpolateRect(windowState.fromRect, windowState.targetRect, progress);
+          const squeeze = Math.sin(rawProgress * Math.PI);
+          windowState.currentRect.width *= 1 - squeeze * 0.035;
+          windowState.currentRect.height *= 1 - squeeze * 0.055;
           windowState.currentOpacity = windowState.fromOpacity + (windowState.targetOpacity - windowState.fromOpacity) * progress;
           windowState.group.rotation.z = windowState.fromRotation + (windowState.targetRotation - windowState.fromRotation) * progress;
           setWindowRect(windowState, windowState.currentRect);
