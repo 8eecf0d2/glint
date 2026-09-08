@@ -1,0 +1,110 @@
+[
+  {
+    "id": "MoveToCenter",
+    "title": "Center",
+    "binding": "alt+cmd+c",
+    "display": "\u2325\u2318C"
+  },
+  {
+    "id": "MoveToFullscreen",
+    "title": "Maximize",
+    "binding": "alt+cmd+return",
+    "display": "\u2325\u2318\u21a9"
+  },
+  {
+    "id": "MoveToLeftHalf",
+    "title": "Left Half",
+    "binding": "alt+cmd+left",
+    "display": "\u2325\u2318\u2190"
+  },
+  {
+    "id": "MoveToRightHalf",
+    "title": "Right Half",
+    "binding": "alt+cmd+right",
+    "display": "\u2325\u2318\u2192"
+  },
+  {
+    "id": "MoveToTopHalf",
+    "title": "Top Half",
+    "binding": "alt+cmd+up",
+    "display": "\u2325\u2318\u2191"
+  },
+  {
+    "id": "MoveToBottomHalf",
+    "title": "Bottom Half",
+    "binding": "alt+cmd+down",
+    "display": "\u2325\u2318\u2193"
+  },
+  {
+    "id": "MoveToUpperLeft",
+    "title": "Upper Left",
+    "binding": "ctrl+shift+cmd+left",
+    "display": "\u2303\u21e7\u2318\u2190"
+  },
+  {
+    "id": "MoveToLowerLeft",
+    "title": "Lower Left",
+    "binding": "ctrl+cmd+left",
+    "display": "\u2303\u2318\u2190"
+  },
+  {
+    "id": "MoveToUpperRight",
+    "title": "Upper Right",
+    "binding": "ctrl+shift+cmd+right",
+    "display": "\u2303\u21e7\u2318\u2192"
+  },
+  {
+    "id": "MoveToLowerRight",
+    "title": "Lower Right",
+    "binding": "ctrl+cmd+right",
+    "display": "\u2303\u2318\u2192"
+  },
+  {
+    "id": "MoveToNextDisplay",
+    "title": "Next Display",
+    "binding": "ctrl+alt+cmd+right",
+    "display": "\u2303\u2325\u2318\u2192"
+  },
+  {
+    "id": "MoveToPreviousDisplay",
+    "title": "Previous Display",
+    "binding": "ctrl+alt+cmd+left",
+    "display": "\u2303\u2325\u2318\u2190"
+  },
+  {
+    "id": "MoveToNextThird",
+    "title": "Next Third",
+    "binding": "ctrl+alt+right",
+    "display": "\u2303\u2325\u2192"
+  },
+  {
+    "id": "MoveToPreviousThird",
+    "title": "Previous Third",
+    "binding": "ctrl+alt+left",
+    "display": "\u2303\u2325\u2190"
+  },
+  {
+    "id": "MakeLarger",
+    "title": "Make Larger",
+    "binding": "ctrl+alt+shift+right",
+    "display": "\u2303\u2325\u21e7\u2192"
+  },
+  {
+    "id": "MakeSmaller",
+    "title": "Make Smaller",
+    "binding": "ctrl+alt+shift+left",
+    "display": "\u2303\u2325\u21e7\u2190"
+  },
+  {
+    "id": "UndoLastMove",
+    "title": "Undo",
+    "binding": "alt+cmd+z",
+    "display": "\u2325\u2318Z"
+  },
+  {
+    "id": "RedoLastMove",
+    "title": "Redo",
+    "binding": "alt+shift+cmd+z",
+    "display": "\u2325\u21e7\u2318Z"
+  }
+]

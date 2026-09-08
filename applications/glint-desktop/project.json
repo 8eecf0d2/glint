@@ -1,0 +1,32 @@
+{
+  "name": "glint-desktop",
+  "projectType": "application",
+  "implicitDependencies": [
+    "glint-core"
+  ],
+  "tags": [
+    "scope:desktop",
+    "type:application"
+  ],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "swift build",
+        "cwd": "applications/glint-desktop"
+      }
+    },
+    "package": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bash scripts/package-desktop.sh"
+      }
+    },
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bash scripts/package-desktop.sh && open applications/glint-desktop/dist/Glint.app"
+      }
+    }
+  }
+}

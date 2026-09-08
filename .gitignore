@@ -1,0 +1,11 @@
+node_modules/
+.nx/
+.DS_Store
+**/.build/
+**/.swiftpm/
+**/build/
+**/dist/
+.env
+.env.*
+!.env.example
+.tesse-data/

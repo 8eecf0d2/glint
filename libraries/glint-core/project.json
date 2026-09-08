@@ -1,0 +1,17 @@
+{
+  "name": "glint-core",
+  "projectType": "library",
+  "tags": [
+    "scope:desktop",
+    "type:library"
+  ],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "swift build",
+        "cwd": "libraries/glint-core"
+      }
+    }
+  }
+}
