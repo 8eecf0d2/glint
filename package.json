@@ -12,9 +12,17 @@
   "scripts": {
     "build": "nx run-many -t build",
     "typecheck": "nx run-many -t typecheck",
+    "test": "nx run-many -t test",
+    "fixtures:spectacle": "node tools/spectacle-oracle/generate-fixtures.mjs",
     "dev:desktop": "nx run glint-desktop:dev",
+    "icon:desktop": "bash scripts/compile-desktop-icon.sh applications/glint-desktop/Resources/IconComposer",
     "package:desktop": "nx run glint-desktop:package",
-    "graph": "nx graph"
+    "release:desktop": "bash scripts/package-release.sh",
+    "dev:site": "nx run glint-site:dev",
+    "graph": "nx graph",
+    "check:site:deployment": "nx run glint-site:check-deployment",
+    "preview:site:worker": "nx run glint-site:preview-worker",
+    "deploy:site": "nx run glint-site:deploy"
   },
   "devDependencies": {
     "nx": "^22.2.4",

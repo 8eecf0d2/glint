@@ -1,0 +1,68 @@
+{
+  "name": "glint-site",
+  "projectType": "application",
+  "sourceRoot": "applications/glint-site/src",
+  "tags": [
+    "scope:site",
+    "type:application"
+  ],
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vite build",
+        "cwd": "applications/glint-site"
+      },
+      "outputs": [
+        "{projectRoot}/dist"
+      ]
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc --noEmit",
+        "cwd": "applications/glint-site"
+      }
+    },
+    "dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vite",
+        "cwd": "applications/glint-site"
+      }
+    },
+    "deploy": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": {
+        "command": "npm run deploy:worker",
+        "cwd": "applications/glint-site"
+      }
+    },
+    "check-deployment": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": {
+        "command": "npx wrangler deploy --dry-run --outdir .wrangler/dry-run",
+        "cwd": "applications/glint-site"
+      }
+    },
+    "preview-worker": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": {
+        "command": "npm run develop:worker",
+        "cwd": "applications/glint-site"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node --test applications/glint-site/tests/windowLayout.test.mjs"
+      }
+    }
+  },
+  "implicitDependencies": [
+    "glint-brand"
+  ]
+}

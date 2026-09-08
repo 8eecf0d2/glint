@@ -1,0 +1,11 @@
+name: Set up Node and dependencies
+description: Install the locked toolchain dependencies; native outputs are never restored from cache.
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v6
+      with:
+        node-version-file: .nvmrc
+        cache: npm
+    - shell: bash
+      run: npm ci

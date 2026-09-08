@@ -8,10 +8,27 @@
       "!{projectRoot}/.build/**/*",
       "!{projectRoot}/.swiftpm/**/*",
       "!{projectRoot}/dist/**/*",
-      "!{projectRoot}/node_modules/**/*"
+      "!{projectRoot}/node_modules/**/*",
+      "!{projectRoot}/.wrangler/**/*",
+      "sharedGlobals"
     ],
     "production": [
       "default"
+    ],
+    "sharedGlobals": [
+      "{workspaceRoot}/tsconfig.base.json",
+      "{workspaceRoot}/package.json",
+      "{workspaceRoot}/package-lock.json",
+      "{workspaceRoot}/.nvmrc",
+      "{workspaceRoot}/.github/**/*"
+    ],
+    "desktopRelease": [
+      "{workspaceRoot}/scripts/**/*",
+      "{workspaceRoot}/distribution/**/*",
+      "{workspaceRoot}/docs/install.md",
+      "{workspaceRoot}/docs/release-notes.md",
+      "{workspaceRoot}/THIRD_PARTY_NOTICES.md",
+      "{workspaceRoot}/LICENSE"
     ]
   },
   "targetDefaults": {
@@ -19,20 +36,33 @@
       "dependsOn": [
         "^build"
       ],
-      "cache": false
+      "cache": false,
+      "inputs": [
+        "production",
+        "^production"
+      ]
     },
     "typecheck": {
       "cache": true,
       "inputs": [
         "default",
-        "{workspaceRoot}/tsconfig.base.json",
-        "{workspaceRoot}/package-lock.json"
+        "^production"
       ]
     },
     "dev": {
       "cache": false
     },
     "package": {
+      "cache": false
+    },
+    "test": {
+      "cache": false,
+      "inputs": [
+        "default",
+        "^production"
+      ]
+    },
+    "deploy": {
       "cache": false
     }
   }
