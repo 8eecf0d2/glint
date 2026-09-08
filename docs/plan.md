@@ -61,7 +61,7 @@ Direct downloads should contain Glint.app in a ZIP initially; consider DMG after
 
 Official homebrew/cask requires artifacts that pass Gatekeeper. Homebrew announced disabling failures in September 2026. A self-maintained tap is the proposed channel and requires its own installation validation; it does not remove macOS checks. New Homebrew versions also require explicit trust for non-official taps. Document the supported installed Homebrew flow at release time. [Cask acceptance](https://docs.brew.sh/Acceptable-Casks), [Homebrew announcement](https://brew.sh/2025/11/12/homebrew-5.0.0/), [tap trust](https://docs.brew.sh/Tap-Trust).
 
-Start with manual updates via Releases and brew upgrade. Evaluate Sparkle later only with a carefully verified update-signature and unsigned-app trust model. Keep an optional future Developer ID/notarization path, but it is not a dependency of the planned v1. Public downloads require public release hosting; repository visibility, product license, domain and Intel support remain release decisions, not bootstrap blockers.
+Start with manual updates via Releases and brew upgrade. Evaluate Sparkle later only with a carefully verified update-signature and unsigned-app trust model. Keep an optional future Developer ID/notarization path, but it is not a dependency of the planned v1. The GitHub repository must remain private. Public downloads require separate public binary hosting; product license, download host, domain and Intel support remain release decisions, not bootstrap blockers. Do not make the source repository public to expose GitHub Release assets.
 
 ## Primary API references
 

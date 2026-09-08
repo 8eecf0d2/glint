@@ -28,7 +28,7 @@ npm run dev:desktop
 
 [Implementation plan](docs/plan.md) · [Spectacle parity](docs/spectacle-parity.md) · [Shortcut defaults](docs/shortcuts.md) · [Delivery map](docs/roadmap.md)
 
-Work is managed in the personal [Glint Tesse workspace](https://app.tesse.dev/workspaces/01a08336-b2cd-7025-af18-2926300ef38d), task prefix GLNT. Default branch: main. Use task branches such as `codex/GLNT-2-behavior-fixtures` and name task identifiers in commits/PRs.
+Work is managed in the personal [Glint Tesse workspace](https://app.tesse.dev/workspaces/01a08336-b2cd-7025-af18-2926300ef38d), task prefix GLNT. The GitHub repository stays private. Default branch: main. Use task branches such as `codex/GLNT-2-behavior-fixtures` and name task identifiers in commits/PRs.
 
 ## Distribution intent
 

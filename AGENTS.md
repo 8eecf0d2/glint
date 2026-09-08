@@ -5,3 +5,4 @@ Use main as the default branch; task branches use codex/GLNT-<number>-<descripti
 Read docs/plan.md and docs/spectacle-parity.md before implementing desktop behavior.
 Keep the macOS app native Swift/SwiftUI/AppKit; Nx coordinates builds, not the runtime.
 Preserve the captured shortcut defaults. Distinguish verified Spectacle behavior, proposed Glint behavior, and implemented behavior.
+Keep the GitHub repository private. Public binaries, if released later, require separate distribution hosting.

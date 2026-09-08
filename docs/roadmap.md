@@ -41,7 +41,7 @@ Managed in [Glint](https://app.tesse.dev/workspaces/01a08336-b2cd-7025-af18-2926
 | [GLNT-18](https://app.tesse.dev/workspaces/01a08336-b2cd-7025-af18-2926300ef38d/tasks/01a08349-ee67-7d15-815a-dedd36fceaf5) | Prepare a self-maintained Homebrew tap and cask | GLNT-4, GLNT-16, GLNT-21 |
 | [GLNT-19](https://app.tesse.dev/workspaces/01a08336-b2cd-7025-af18-2926300ef38d/tasks/01a08349-f00f-7fce-ba8a-0971da157f8b) | Build the static marketing and installation website | GLNT-21 |
 | [GLNT-20](https://app.tesse.dev/workspaces/01a08336-b2cd-7025-af18-2926300ef38d/tasks/01a08349-f1cd-74f7-b045-8c52ff8a483d) | Verify fresh-machine release install, upgrade and uninstall | GLNT-15, GLNT-16, GLNT-17, GLNT-18, GLNT-19 |
-| [GLNT-21](https://app.tesse.dev/workspaces/01a08336-b2cd-7025-af18-2926300ef38d/tasks/01a08349-f36e-7cdd-a66e-7912aecb2a5e) | Decide public release identity, licensing and hosting | — |
+| [GLNT-21](https://app.tesse.dev/workspaces/01a08336-b2cd-7025-af18-2926300ef38d/tasks/01a08349-f36e-7cdd-a66e-7912aecb2a5e) | Decide release identity, licensing and public binary hosting | — |
 | [GLNT-22](https://app.tesse.dev/workspaces/01a08336-b2cd-7025-af18-2926300ef38d/tasks/01a08349-f527-7915-aad5-0d2575772112) | Publish the first accepted Glint release | GLNT-20, GLNT-21 |
 
 The critical path starts with reference behavior and the native platform spike, converges at all-action integration, then proceeds through compatibility and daily-use acceptance. Unsigned installation is investigated early; release packaging and the website can progress independently once their prerequisites are settled.
