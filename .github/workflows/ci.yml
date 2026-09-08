@@ -6,12 +6,16 @@ on:
 permissions:
   contents: read
 jobs:
-  scaffold:
+  verify:
     runs-on: macos-15
     env:
       NX_DAEMON: "false"
       NX_TUI: "false"
     steps:
+      - name: Assert private repository
+        env:
+          REPOSITORY_PRIVATE: ${{ github.event.repository.private }}
+        run: test "$REPOSITORY_PRIVATE" = "true"
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
@@ -20,5 +24,6 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm run build
+      - run: npm test
       - run: npm run package:desktop
       - run: codesign --verify --strict applications/glint-desktop/dist/Glint.app

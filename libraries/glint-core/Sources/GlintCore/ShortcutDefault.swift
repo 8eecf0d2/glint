@@ -6,6 +6,9 @@ public struct ShortcutDefault: Decodable, Identifiable, Sendable {
     public let binding: String
     public let display: String
 
+    public var action: WindowAction? { WindowAction(shortcutIdentifier: id) }
+    public var shortcutBinding: ShortcutBinding? { ShortcutBinding(spectacleString: binding) }
+
     public static func load() throws -> [ShortcutDefault] {
         guard let url = Bundle.module.url(forResource: "default-shortcuts", withExtension: "json") else {
             throw CocoaError(.fileNoSuchFile)

@@ -5,10 +5,14 @@
 <key>CFBundleIdentifier</key><string>dev.8eecf0d2.glint</string>
 <key>CFBundleName</key><string>Glint</string>
 <key>CFBundleDisplayName</key><string>Glint</string>
+<key>CFBundleIconFile</key><string>AppIcon</string>
+<key>CFBundleIconName</key><string>Glint</string>
 <key>CFBundlePackageType</key><string>APPL</string>
+<key>LSApplicationCategoryType</key><string>public.app-category.utilities</string>
 <key>CFBundleShortVersionString</key><string>0.0.0</string>
 <key>CFBundleVersion</key><string>1</string>
 <key>LSMinimumSystemVersion</key><string>14.0</string>
 <key>LSUIElement</key><true/>
 <key>NSHighResolutionCapable</key><true/>
+<key>GlintUpdateFeedURL</key><string></string>
 </dict></plist>

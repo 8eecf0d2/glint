@@ -1,43 +1,86 @@
 import AppKit
-import SwiftUI
 import GlintCore
+import SwiftUI
 
 @main
 struct GlintApp: App {
+    @StateObject private var model = AppModel()
+
     var body: some Scene {
-        MenuBarExtra("Glint", systemImage: "rectangle.split.2x2") {
-            Text("Glint — development scaffold")
-            SettingsLink { Text("Settings…") }
-            Divider()
-            Button("Quit Glint") { NSApplication.shared.terminate(nil) }
-                .keyboardShortcut("q")
+        MenuBarExtra {
+            GlintMenu(model: model)
+        } label: {
+            Image(nsImage: BrandAssets.menuBarIcon)
+                .renderingMode(.template)
+                .opacity(model.isPaused ? 0.45 : 1)
+                .accessibilityLabel(model.isPaused ? "Glint paused" : "Glint")
         }
-        Settings { GlintSettingsView() }
+        Settings {
+            SettingsView(model: model)
+        }
     }
 }
 
-private struct GlintSettingsView: View {
-    private let shortcuts = Result { try ShortcutDefault.load() }
+private enum BrandAssets {
+    static let menuBarIcon: NSImage = {
+        if let url = Bundle.module.url(forResource: "GlintMenuBar", withExtension: "svg"),
+           let image = NSImage(contentsOf: url) {
+            image.isTemplate = true
+            return image
+        }
+        let fallback = NSImage(systemSymbolName: "sparkles", accessibilityDescription: "Glint") ?? NSImage(size: NSSize(width: 18, height: 18))
+        fallback.isTemplate = true
+        return fallback
+    }()
+}
+
+private struct GlintMenu: View {
+    @ObservedObject var model: AppModel
+    @Environment(\.openSettings) private var openSettings
+
+    private let groups: [[WindowAction]] = [
+        [.center, .maximize],
+        [.leftHalf, .rightHalf, .topHalf, .bottomHalf],
+        [.upperLeft, .lowerLeft, .upperRight, .lowerRight],
+        [.nextDisplay, .previousDisplay, .nextThird, .previousThird],
+        [.makeLarger, .makeSmaller],
+        [.undo, .redo],
+    ]
 
     var body: some View {
-        Form {
-            Section {
-                Text("Window controls are still in development.")
-                Text("These are the captured defaults. Shortcut editing and window movement will be added next.")
-                    .foregroundStyle(.secondary)
+        if !model.accessibilityGranted {
+            SettingsLink {
+                Label("Accessibility Access Required", systemImage: "exclamationmark.triangle")
             }
-            Section("Default shortcuts") {
-                switch shortcuts {
-                case .success(let defaults):
-                    ForEach(defaults) { shortcut in
-                        LabeledContent(shortcut.title, value: shortcut.display)
+            Divider()
+        }
+        ForEach(Array(groups.enumerated()), id: \.offset) { groupIndex, actions in
+            if groupIndex > 0 { Divider() }
+            ForEach(actions) { action in
+                Button {
+                    model.perform(action)
+                } label: {
+                    HStack {
+                        Text(model.title(for: action))
+                        Spacer()
+                        Text(model.shortcutDisplay(for: action))
                     }
-                case .failure:
-                    Text("The default shortcuts could not be loaded.")
                 }
+                .disabled(model.isPaused)
             }
         }
-        .formStyle(.grouped)
-        .frame(width: 520, height: 620)
+        Divider()
+        Button(model.isPaused ? "Resume Glint" : "Pause Glint") {
+            model.togglePaused()
+        }
+        SettingsLink { Text("Settings…") }
+        Button("Check for Updates…") {
+            openSettings()
+            model.checkForUpdates()
+        }
+        Button("About Glint") { NSApplication.shared.orderFrontStandardAboutPanel(nil) }
+        Divider()
+        Button("Quit Glint") { NSApplication.shared.terminate(nil) }
+            .keyboardShortcut("q")
     }
 }

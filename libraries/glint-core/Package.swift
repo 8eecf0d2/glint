@@ -4,5 +4,8 @@ let package = Package(
     name: "GlintCore",
     platforms: [.macOS(.v14)],
     products: [.library(name: "GlintCore", targets: ["GlintCore"])],
-    targets: [.target(name: "GlintCore", resources: [.process("Resources")])]
+    targets: [
+        .target(name: "GlintCore", resources: [.process("Resources")]),
+        .testTarget(name: "GlintCoreTests", dependencies: ["GlintCore"], resources: [.copy("Fixtures")]),
+    ]
 )

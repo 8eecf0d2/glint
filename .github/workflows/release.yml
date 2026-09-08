@@ -1,0 +1,70 @@
+name: Build private release artifact
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Semantic version without a leading v
+        required: true
+        type: string
+      build_number:
+        description: Monotonic macOS bundle build number
+        required: true
+        type: string
+      architectures:
+        description: Space-separated architectures
+        required: true
+        default: arm64
+        type: string
+      download_base_url:
+        description: Public directory that will contain the versioned ZIP
+        required: true
+        type: string
+      update_feed_url:
+        description: Stable public URL for latest.json
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-15
+    env:
+      NX_DAEMON: "false"
+      NX_TUI: "false"
+      GLINT_VERSION: ${{ inputs.version }}
+      GLINT_BUILD_NUMBER: ${{ inputs.build_number }}
+      GLINT_ARCHS: ${{ inputs.architectures }}
+      GLINT_DOWNLOAD_BASE_URL: ${{ inputs.download_base_url }}
+      GLINT_UPDATE_FEED_URL: ${{ inputs.update_feed_url }}
+    steps:
+      - name: Assert private repository
+        env:
+          REPOSITORY_PRIVATE: ${{ github.event.repository.private }}
+        run: test "$REPOSITORY_PRIVATE" = "true"
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run build
+      - run: npm test
+      - run: npm run release:desktop
+      - name: Verify archive contents and signature
+        run: |
+          release_dir="applications/glint-desktop/dist/releases/$GLINT_VERSION"
+          archive="$release_dir/Glint-$GLINT_VERSION-macos.zip"
+          (cd "$release_dir" && shasum -a 256 -c SHA256SUMS)
+          destination="$(mktemp -d)"
+          ditto -x -k "$archive" "$destination"
+          codesign --verify --deep --strict "$destination/Glint.app"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: glint-${{ inputs.version }}-private-release
+          path: applications/glint-desktop/dist/releases/${{ inputs.version }}
+          if-no-files-found: error
+          retention-days: 14
