@@ -2,7 +2,7 @@
 
 A native macOS window manager with Spectacle's movement behavior and familiar keyboard shortcuts.
 
-**Status:** implementation-complete development build. The native app includes Spectacle-compatible geometry, all 18 global shortcuts, Accessibility window control, display traversal, application-scoped undo/redo, editable persistent shortcuts, pause/login controls and manual update discovery. The static site and release/tap tooling are implemented. Live application compatibility, clean-machine installation, public hosting and Broderick's acceptance remain external release gates.
+**Status:** implementation-complete development build. The native app includes Spectacle-compatible geometry, all 18 global shortcuts, Accessibility window control, display traversal, application-scoped undo/redo, editable persistent shortcuts, login controls and manual update discovery. The static site and release/tap tooling are implemented. Live application compatibility, clean-machine installation, public hosting and Broderick's acceptance remain external release gates.
 
 ## Workspace
 

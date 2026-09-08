@@ -18,17 +18,14 @@ struct SettingsView: View {
         Form {
             Section("General") {
                 LabeledContent("Accessibility") {
-                    HStack(spacing: 8) {
+                    if model.accessibilityGranted {
                         Circle()
-                            .fill(model.accessibilityGranted ? Color.green : Color.orange)
+                            .fill(Color.green)
                             .frame(width: 8, height: 8)
-                        Text(model.accessibilityGranted ? "Granted" : "Required")
+                            .accessibilityLabel("Accessibility access granted")
+                    } else {
+                        Button("Request access") { model.requestAccessibility() }
                     }
-                }
-                HStack {
-                    Button("Request Access") { model.requestAccessibility() }
-                    Button("Open Accessibility Settings") { model.openAccessibilitySettings() }
-                    Button("Reveal This Copy") { model.revealApp() }
                 }
                 if !model.accessibilityGranted {
                     Text("If Glint is already enabled, remove its old Accessibility row, add this exact app copy again, and relaunch. Ad-hoc build updates can change the identity macOS stores.")
@@ -39,15 +36,23 @@ struct SettingsView: View {
                     get: { model.launchAtLoginEnabled },
                     set: { model.setLaunchAtLogin($0) }
                 ))
-                Toggle("Pause global shortcuts", isOn: Binding(
-                    get: { model.isPaused },
-                    set: { _ in model.togglePaused() }
-                ))
                 LabeledContent("Status", value: model.statusMessage)
+                    .foregroundStyle(.secondary)
+                HStack {
+                    Text("Glint \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "Development")")
+                    Spacer()
+                    Button(updates.isChecking ? "Checking…" : "Check for updates") { updates.check() }
+                        .disabled(updates.isChecking)
+                    if updates.availableDownloadURL != nil {
+                        Button("Open Download") { updates.openDownload() }
+                    }
+                }
+                Text(updates.message)
+                    .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
-            Section("Shortcuts") {
+            Section("Keyboard shortcuts") {
                 ForEach(WindowAction.allCases) { action in
                     ShortcutRow(action: action, preferences: shortcuts, title: model.title(for: action))
                 }
@@ -57,23 +62,11 @@ struct SettingsView: View {
                 }
             }
 
-            Section("About") {
-                LabeledContent("Glint", value: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "Development")
-                HStack {
-                    Button(updates.isChecking ? "Checking…" : "Check for Updates") { updates.check() }
-                        .disabled(updates.isChecking)
-                    if updates.availableDownloadURL != nil {
-                        Button("Open Download") { updates.openDownload() }
-                    }
-                }
-                Text(updates.message)
-                    .foregroundStyle(.secondary)
-                Text("Glint controls only window position and size through macOS Accessibility. It does not inspect window contents.")
-                    .foregroundStyle(.secondary)
-            }
+
         }
         .formStyle(.grouped)
         .frame(width: 620, height: 720)
+        .background(SettingsWindowChrome())
         .onAppear { model.refreshSystemState() }
     }
 }
@@ -205,5 +198,25 @@ private struct ShortcutRecorderButton: View {
         if let key = special[event.keyCode] { return key }
         guard let characters = event.charactersIgnoringModifiers?.lowercased(), characters.count == 1 else { return nil }
         return characters
+    }
+}
+
+// A native unified toolbar gives the traffic lights the standard, roomier inset.
+private struct SettingsWindowChrome: NSViewRepresentable {
+    func makeNSView(context: Context) -> ChromeView { ChromeView() }
+    func updateNSView(_ nsView: ChromeView, context: Context) {}
+
+    final class ChromeView: NSView {
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            guard let window else { return }
+            window.titleVisibility = .hidden
+            window.toolbarStyle = .unified
+            if window.toolbar == nil {
+                let toolbar = NSToolbar(identifier: "GlintSettingsToolbar")
+                toolbar.showsBaselineSeparator = false
+                window.toolbar = toolbar
+            }
+        }
     }
 }

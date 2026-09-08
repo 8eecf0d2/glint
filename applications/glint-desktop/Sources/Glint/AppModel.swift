@@ -5,7 +5,6 @@ import ServiceManagement
 
 @MainActor
 final class AppModel: ObservableObject {
-    @Published private(set) var isPaused: Bool
     @Published private(set) var accessibilityGranted = AXIsProcessTrusted()
     @Published private(set) var statusMessage = "Ready"
     @Published private(set) var launchAtLoginEnabled = SMAppService.mainApp.status == .enabled
@@ -18,7 +17,6 @@ final class AppModel: ObservableObject {
     private var systemStateTimer: Timer?
 
     init() {
-        isPaused = UserDefaults.standard.bool(forKey: "GlintPaused")
         shortcuts = ShortcutPreferences()
         hotKeys.onAction = { [weak self] action in self?.perform(action) }
         hotKeys.start()
@@ -37,7 +35,6 @@ final class AppModel: ObservableObject {
     }
 
     func perform(_ action: WindowAction) {
-        guard !isPaused else { return }
         accessibilityGranted = AXIsProcessTrusted()
         guard accessibilityGranted else {
             requestAccessibility()
@@ -57,35 +54,12 @@ final class AppModel: ObservableObject {
         shortcuts.defaultForAction(action)?.title ?? action.rawValue
     }
 
-    func shortcutDisplay(for action: WindowAction) -> String {
-        shortcuts.binding(for: action)?.display ?? "—"
-    }
-
-    func hasShortcut(_ action: WindowAction) -> Bool {
-        shortcuts.binding(for: action) != nil
-    }
-
-    func togglePaused() {
-        isPaused.toggle()
-        UserDefaults.standard.set(isPaused, forKey: "GlintPaused")
-        statusMessage = isPaused ? "Global shortcuts paused" : "Global shortcuts active"
-    }
-
     func requestAccessibility() {
         let options = ["AXTrustedCheckOptionPrompt": true] as CFDictionary
         accessibilityGranted = AXIsProcessTrustedWithOptions(options)
         statusMessage = accessibilityGranted
             ? "Accessibility access granted"
             : "Enable this Glint build in Accessibility, then relaunch"
-    }
-
-    func openAccessibilitySettings() {
-        guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") else { return }
-        NSWorkspace.shared.open(url)
-    }
-
-    func revealApp() {
-        NSWorkspace.shared.activateFileViewerSelecting([Bundle.main.bundleURL])
     }
 
     func setLaunchAtLogin(_ enabled: Bool) {
