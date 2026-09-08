@@ -7,3 +7,5 @@ The site temporarily imports `brand/drafts/glint-mark.svg` for review. Do not tr
 The background opens with randomly sized, overlapping windows across the desktop, then snaps them into place in a staggered sequence. Ongoing motion mixes individual adjustments, paired snaps and occasional four-window exchanges, with 380–520 ms transitions and 0.5–1.6 second rests. A feathered backdrop blur behind the hero preserves the background color while softening detail. Reduced motion skips the entrance; rendering sleeps during holds and hidden tabs.
 
 The opening floats gently and starts with four or five windows. Every few beats a random window shrinks closed or a new one scales in, then snaps into place; its partner expands or contracts to share the space. Desktop counts vary between three and six, and mobile between one and two. Lifecycle and rest timing vary between loops.
+
+Pacing refinement: brief 7–8% shrink gestures return in about 420 ms, and lifecycle events cannot interrupt their restoration. Normal snaps take 320–420 ms with shorter rests; spawning, closing and the spawn-to-snap handoff are also quicker.

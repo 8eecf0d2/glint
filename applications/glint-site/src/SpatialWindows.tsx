@@ -33,18 +33,18 @@ type Beat = {
 // Short, varied phrases: paired snaps, individual resizes and occasional
 // cross-screen exchanges. At least two windows stay anchored in every beat.
 const beats: Beat[] = [
-  { column: 0, split: 0.5, stagger: 0.12, duration: 0.42, rest: 0.85 },
-  { column: 1, split: 0.5, stagger: 0.1, duration: 0.4, rest: 0.65 },
-  { column: 2, inset: 0.2, stagger: 0, duration: 0.4, rest: 0.55 },
-  { column: 2, inset: 0, stagger: 0, duration: 0.38, rest: 1.2 },
-  { column: 0, exchangeWith: 2, stagger: 0.12, duration: 0.52, rest: 1.4 },
-  { column: 2, split: 0.5, stagger: 0.14, duration: 0.42, rest: 0.75 },
-  { column: 0, inset: 0.16, stagger: 0, duration: 0.38, rest: 0.5 },
-  { column: 0, inset: 0, stagger: 0, duration: 0.4, rest: 0.9 },
-  { column: 0, split: 1 / 3, stagger: 0.1, duration: 0.44, rest: 0.7 },
-  { column: 1, split: 2 / 3, stagger: 0.12, duration: 0.42, rest: 1.3 },
-  { column: 0, exchangeWith: 2, stagger: 0.1, duration: 0.5, rest: 0.85 },
-  { column: 2, split: 1 / 3, stagger: 0.12, duration: 0.4, rest: 1.6 },
+  { column: 0, split: 0.5, stagger: 0.09, duration: 0.34, rest: 0.65 },
+  { column: 1, split: 0.5, stagger: 0.08, duration: 0.32, rest: 0.5 },
+  { column: 2, inset: 0.08, stagger: 0, duration: 0.16, rest: 0.04 },
+  { column: 2, inset: 0, stagger: 0, duration: 0.22, rest: 0.8 },
+  { column: 0, exchangeWith: 2, stagger: 0.09, duration: 0.42, rest: 1.0 },
+  { column: 2, split: 0.5, stagger: 0.1, duration: 0.34, rest: 0.55 },
+  { column: 0, inset: 0.07, stagger: 0, duration: 0.16, rest: 0.04 },
+  { column: 0, inset: 0, stagger: 0, duration: 0.22, rest: 0.65 },
+  { column: 0, split: 1 / 3, stagger: 0.08, duration: 0.36, rest: 0.5 },
+  { column: 1, split: 2 / 3, stagger: 0.09, duration: 0.34, rest: 0.95 },
+  { column: 0, exchangeWith: 2, stagger: 0.08, duration: 0.4, rest: 0.6 },
+  { column: 2, split: 1 / 3, stagger: 0.09, duration: 0.32, rest: 1.15 },
 ];
 
 function interpolateRect(from: WindowRect, to: WindowRect, progress: number): WindowRect {
@@ -272,8 +272,8 @@ export function SpatialWindows() {
           state.phase = "move";
           state.fromRect = { ...state.currentRect };
           state.targetRect = resolveRect(state);
-          state.startedAt = now + 240;
-          state.duration = 0.5;
+          state.startedAt = now + 120;
+          state.duration = 0.38;
           state.fromRotation = 0;
           state.moving = true;
           state.group.scale.setScalar(1);
@@ -334,25 +334,28 @@ export function SpatialWindows() {
       state.fromRect = { ...state.currentRect };
       state.targetRect = { ...state.currentRect };
       state.startedAt = now;
-      state.duration = shouldOpen ? 0.38 : 0.34;
+      state.duration = shouldOpen ? 0.3 : 0.26;
       state.moving = true;
       if (sibling.active) {
         sibling.phase = "move";
         sibling.fromRotation = 0;
         sibling.fromRect = { ...sibling.currentRect };
         sibling.targetRect = resolveRect(sibling);
-        sibling.startedAt = now + 140;
-        sibling.duration = 0.46;
+        sibling.startedAt = now + 100;
+        sibling.duration = 0.36;
         sibling.moving = true;
       }
-      restAfterMovement = 0.55 + Math.random() * 0.6;
+      restAfterMovement = 0.4 + Math.random() * 0.45;
       frame = window.requestAnimationFrame(animate);
       return true;
     }
 
     function beginBeat() {
       if (!canAnimate()) return;
-      if (--beatsUntilLifecycle <= 0) {
+      // Keep shrink/restore together; spawning or closing must not strand a
+      // window in the smaller pose for an extra lifecycle beat.
+      const restoringWindow = beats[beatIndex % beats.length]!.inset === 0;
+      if (!restoringWindow && --beatsUntilLifecycle <= 0) {
         beatsUntilLifecycle = 2 + Math.floor(Math.random() * 3);
         if (beginLifecycle()) return;
       }
