@@ -34,6 +34,7 @@ struct GlintApp: App {
     }
 }
 
+@MainActor
 private enum BrandAssets {
     static var menuBarURL: URL? {
         // SwiftPM's generated accessor searches beside the app, then its original
