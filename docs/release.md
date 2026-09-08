@@ -20,7 +20,7 @@ After merging and explicitly authorizing/enabling production, use a full main ru
 
 ## Explicit native versions
 
-The user chose intentional version bumps, never automatic versioning. Edit `applications/glint-desktop/release.json` before a new app publication: stable `version` and monotonically increasing `buildNumber`. The checked `0.0.0` is a rehearsal placeholder and publication refuses it; choose the actual first version deliberately. There is no CI run-number version or automatic bump.
+The user chose intentional version bumps, never automatic versioning. Edit `applications/glint-desktop/release.json` before a new app publication: stable `version` and monotonically increasing `buildNumber`. The first public test release is explicitly set to `0.1.0`, build `1`. Publication refuses the `0.0.0` rehearsal placeholder. There is no CI run-number version or automatic bump.
 
 Packaging records a digest of the release input files in BUILD-PROVENANCE.txt. For an existing version, publication compares that digest and build number: identical published inputs are a no-op (safe retry/nightly full run); changed inputs, different build numbers or partial drafts fail and never overwrite assets. For a new version both version and build number must exceed the latest published release. Public-release creation attaches verified assets and creates `v<version>` at the exact built commit. A preexisting tag pointing elsewhere is rejected. Do not move tags or overwrite downloads.
 
@@ -35,3 +35,8 @@ PR checks/builds exercise the same Nx targets and upload artifacts, with no cred
 Local universal cross-compilation remains available through the low-level packaging script, but the pipeline publishes arm64 only. macOS 14 is the compilation floor, not a completed OS acceptance matrix. Package loading smoke checks do not establish clean-machine Gatekeeper or interactive window movement.
 
 Before production: review/merge the PR, choose the first app version and product license/final identity, replace preparation release notes with accepted terms and tested OS coverage, finish downloaded clean-machine install/update/rollback/uninstall and daily-use acceptance, authorize public visibility and initial deployment. The publish script fails without a LICENSE or finalized notes. See INSTALL.md in release outputs and `docs/install.md` in source. A self-maintained tap remains a separate publication/acceptance gate; no tap repository/name is invented. GLNT-23 icons remain approved.
+
+
+## First release authorization
+
+Broderick authorized merging and deploying the first release test and selected Apache 2.0. Version 0.1.0/build 1 is the initial Apple silicon test release. Fresh-machine and daily-use acceptance remain pending and are disclosed in its release notes.

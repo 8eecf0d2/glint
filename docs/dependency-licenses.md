@@ -1,6 +1,6 @@
 # Dependency license inventory
 
-Generated from the current npm lockfile on 2026-09-09. Package metadata is inventory evidence, not a legal approval or substitute for each dependency's license text. The desktop Swift package has only the local GlintCore dependency and system frameworks; npm dependencies build the website/tooling and are not bundled into the native ZIP. Spectacle's full MIT notice remains in THIRD_PARTY_NOTICES.md. Glint's own product license/distribution terms remain unresolved. Review web-distributed dependencies' notice obligations before site publication.
+Generated from the current npm lockfile on 2026-09-09. Package metadata is inventory evidence, not a legal approval or substitute for each dependency's license text. The desktop Swift package has only the local GlintCore dependency and system frameworks; npm dependencies build the website/tooling and are not bundled into the native ZIP. Spectacle's full MIT notice remains in THIRD_PARTY_NOTICES.md. Glint is licensed under Apache 2.0; see LICENSE. Third-party packages retain the licenses listed below. Review web-distributed dependencies' notice obligations before site publication.
 
 | Package path | Version | Declared license | Scope |
 | --- | --- | --- | --- |
