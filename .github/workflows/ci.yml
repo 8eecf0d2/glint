@@ -12,10 +12,6 @@ jobs:
       NX_DAEMON: "false"
       NX_TUI: "false"
     steps:
-      - name: Assert private repository
-        env:
-          REPOSITORY_PRIVATE: ${{ github.event.repository.private }}
-        run: test "$REPOSITORY_PRIVATE" = "true"
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:

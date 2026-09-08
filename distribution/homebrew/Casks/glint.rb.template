@@ -5,7 +5,7 @@ cask "glint" do
   url "__URL__"
   name "Glint"
   desc "Native macOS window manager with Spectacle 1.2 movement behavior"
-  homepage "https://glint.invalid"
+  homepage "https://glint.broderickwilkinson.com"
 
 __ARCH_REQUIREMENT__
   depends_on macos: ">= :sonoma"

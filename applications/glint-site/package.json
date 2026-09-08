@@ -6,7 +6,11 @@
   "scripts": {
     "build": "vite build",
     "dev": "vite",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build:worker:cloudflare": "npm run build",
+    "check:deployment": "wrangler deploy --dry-run --outdir .wrangler/dry-run",
+    "develop:worker": "wrangler dev --local --port 8787",
+    "deploy:worker": "wrangler deploy"
   },
   "dependencies": {
     "lucide-react": "^1.22.0",
@@ -21,6 +25,7 @@
     "@types/three": "^0.185.4",
     "@vitejs/plugin-react": "^5.0.0",
     "tailwindcss": "^4.3.3",
-    "vite": "^7.3.6"
+    "vite": "^7.3.6",
+    "wrangler": "^4.130.0"
   }
 }

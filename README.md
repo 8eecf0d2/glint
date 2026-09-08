@@ -28,10 +28,12 @@ npm run dev:desktop
 
 [Architecture and scope](https://app.tesse.dev/workspaces/01a08336-b2cd-7025-af18-2926300ef38d/documents/01a08348-026a-7343-9dee-eb12d16b49b9) · [Spectacle parity](https://app.tesse.dev/workspaces/01a08336-b2cd-7025-af18-2926300ef38d/documents/01a083e0-94db-7db3-a04d-8185b307cb30) · [Shortcut defaults](https://app.tesse.dev/workspaces/01a08336-b2cd-7025-af18-2926300ef38d/documents/01a083e0-95e7-7e66-a9a4-519f18d0cb96) · [Delivery map](https://app.tesse.dev/workspaces/01a08336-b2cd-7025-af18-2926300ef38d/documents/01a083e1-3b53-7af7-9b33-ce0dfc80c67d) · [Verification](https://app.tesse.dev/workspaces/01a08336-b2cd-7025-af18-2926300ef38d/documents/01a083e0-e544-724d-ad61-a356e6e37b34)
 
-Work is managed in the personal [Glint Tesse workspace](https://app.tesse.dev/workspaces/01a08336-b2cd-7025-af18-2926300ef38d), task prefix GLNT. The GitHub repository stays private. Default branch: main. Use task branches such as `codex/GLNT-2-behavior-fixtures` and name task identifiers in commits/PRs.
+Work is managed in the personal [Glint Tesse workspace](https://app.tesse.dev/workspaces/01a08336-b2cd-7025-af18-2926300ef38d), task prefix GLNT. The repository stays private until Broderick authorizes publication, then uses public GitHub Releases for downloads. Default branch: main. Use task branches such as `codex/GLNT-2-behavior-fixtures` and name task identifiers in commits/PRs.
 
 ## Distribution intent
 
 Direct downloads first; a self-maintained Homebrew tap after installation validation. “Unsigned” means a free ad-hoc signature without Developer ID or notarization. It still requires the macOS user approval path and Accessibility permission. Official homebrew/cask requires Gatekeeper compliance. No public release is available until the external gates in [the release process](https://app.tesse.dev/workspaces/01a08336-b2cd-7025-af18-2926300ef38d/documents/01a083e0-e43f-7752-8049-3aa43c6a5a6f) are complete.
 
 Spectacle 1.2 is the MIT behavior reference; see [third-party notices](THIRD_PARTY_NOTICES.md). Glint's own publication license is a release decision.
+
+Release pipeline and publication gates: [release operations](docs/release.md). Installation and recovery: [install guide](docs/install.md).

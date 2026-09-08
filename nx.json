@@ -8,7 +8,8 @@
       "!{projectRoot}/.build/**/*",
       "!{projectRoot}/.swiftpm/**/*",
       "!{projectRoot}/dist/**/*",
-      "!{projectRoot}/node_modules/**/*"
+      "!{projectRoot}/node_modules/**/*",
+      "!{projectRoot}/.wrangler/**/*"
     ],
     "production": [
       "default"
