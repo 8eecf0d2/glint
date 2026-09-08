@@ -4,4 +4,4 @@ Minimal single-viewport marketing site built with React 19, TypeScript, Vite 7 a
 
 The site temporarily imports `brand/drafts/glint-mark.svg` for review. Do not treat that draft as canonical or propagate it to packaged app surfaces until GLNT-23 is approved.
 
-The background uses a repeating sequence of local window adjustments: one or two windows move at a time, with 360–440 ms transitions and longer rests between phrases. Elasticity settles with the movement. A feathered white clearing behind the hero protects copy readability. Rendering sleeps during holds, reduced motion and hidden tabs; narrow viewports show one complete window pair.
+The background opens with randomly sized, overlapping windows across the desktop, then snaps them into place in a staggered sequence. Ongoing motion mixes individual adjustments, paired snaps and occasional four-window exchanges, with 380–520 ms transitions and 0.5–1.6 second rests. A feathered backdrop blur behind the hero preserves the background color while softening detail. Reduced motion skips the entrance; rendering sleeps during holds and hidden tabs.
