@@ -18,10 +18,9 @@ function App() {
       <div className="hero-blur" aria-hidden="true" />
       <section className="hero" aria-labelledby="hero-title">
         <img className="hero-mark" src={glintMark} alt="" />
-        <p className="eyebrow">Native window control for macOS</p>
-        <h1 id="hero-title">Spectacle’s muscle memory, kept alive.</h1>
+        <h1 id="hero-title">Put that window over there.</h1>
         <p className="subtitle">
-          Glint brings Spectacle 1.2’s familiar window movement, shortcuts, and undo history to a modern native menu bar app.
+          A small window manager for macOS. Keyboard shortcuts for moving things around until your desktop feels right.
         </p>
 
         <div className="actions">
