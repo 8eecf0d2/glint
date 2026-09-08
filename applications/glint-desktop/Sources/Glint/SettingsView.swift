@@ -36,8 +36,6 @@ struct SettingsView: View {
                     get: { model.launchAtLoginEnabled },
                     set: { model.setLaunchAtLogin($0) }
                 ))
-                LabeledContent("Status", value: model.statusMessage)
-                    .foregroundStyle(.secondary)
                 HStack {
                     Text("Glint \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "Development")")
                     Spacer()
