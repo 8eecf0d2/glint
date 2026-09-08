@@ -12,7 +12,10 @@
       "options": {
         "command": "vite build",
         "cwd": "applications/glint-site"
-      }
+      },
+      "outputs": [
+        "{projectRoot}/dist"
+      ]
     },
     "typecheck": {
       "executor": "nx:run-commands",
@@ -40,7 +43,7 @@
       "executor": "nx:run-commands",
       "cache": false,
       "options": {
-        "command": "npm run check:deployment",
+        "command": "npx wrangler deploy --dry-run --outdir .wrangler/dry-run",
         "cwd": "applications/glint-site"
       }
     },
@@ -51,6 +54,15 @@
         "command": "npm run develop:worker",
         "cwd": "applications/glint-site"
       }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node --test applications/glint-site/tests/windowLayout.test.mjs"
+      }
     }
-  }
+  },
+  "implicitDependencies": [
+    "glint-brand"
+  ]
 }
