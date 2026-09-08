@@ -1,0 +1,24 @@
+{
+  "name": "glint",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "workspaces": [
+    "applications/*"
+  ],
+  "scripts": {
+    "build": "nx run-many -t build",
+    "typecheck": "nx run-many -t typecheck",
+    "dev:desktop": "nx run glint-desktop:dev",
+    "package:desktop": "nx run glint-desktop:package",
+    "graph": "nx graph"
+  },
+  "devDependencies": {
+    "nx": "^22.2.4",
+    "typescript": "^6.0.3",
+    "@types/node": "^22"
+  }
+}
