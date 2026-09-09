@@ -16,7 +16,7 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
-            Section("General") {
+            Section {
                 LabeledContent("Accessibility") {
                     if model.accessibilityGranted {
                         Circle()
@@ -63,6 +63,7 @@ struct SettingsView: View {
 
         }
         .formStyle(.grouped)
+        .contentMargins(.top, 8, for: .scrollContent)
         .navigationTitle("")
         .toolbarBackground(.hidden, for: .windowToolbar)
         .frame(width: 620, height: 720)
