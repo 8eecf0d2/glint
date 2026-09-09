@@ -1,6 +1,6 @@
 # Third-party references
 
-Spectacle 1.2 by Eric Czarny is the behavior reference, pinned to `eacf5bb6499257c83e03f51660f38106af8ee914` (MIT). Glint's geometry is a clean Swift implementation derived from the reference behavior, and the committed development fixtures are outputs of its original calculators. No Spectacle JavaScript or Objective-C is linked into the app. Other package licenses are provided by their dependencies; inventory them before release. Glint's own publication license remains a release decision.
+Spectacle 1.2 by Eric Czarny is the behavior reference, pinned to `eacf5bb6499257c83e03f51660f38106af8ee914` (MIT). Glint's geometry is a clean Swift implementation derived from the reference behavior, and the committed development fixtures are outputs of its original calculators. No Spectacle JavaScript or Objective-C is linked into the app. Other package licenses are provided by their dependencies; inventory them before release. Glint is Copyright 2026 Broderick Wilkinson and licensed under the Apache License, Version 2.0; see LICENSE. Third-party components retain their own licenses.
 
 ## Spectacle MIT License
 

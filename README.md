@@ -34,6 +34,6 @@ Work is managed in the personal [Glint Tesse workspace](https://app.tesse.dev/wo
 
 Direct downloads first; a self-maintained Homebrew tap after installation validation. “Unsigned” means a free ad-hoc signature without Developer ID or notarization. It still requires the macOS user approval path and Accessibility permission. Official homebrew/cask requires Gatekeeper compliance. No public release is available until the external gates in [the release process](https://app.tesse.dev/workspaces/01a08336-b2cd-7025-af18-2926300ef38d/documents/01a083e0-e43f-7752-8049-3aa43c6a5a6f) are complete.
 
-Spectacle 1.2 is the MIT behavior reference; see [third-party notices](THIRD_PARTY_NOTICES.md). Glint's own publication license is a release decision.
+Spectacle 1.2 is the MIT behavior reference; see [third-party notices](THIRD_PARTY_NOTICES.md). Glint is Copyright 2026 Broderick Wilkinson, licensed under [Apache 2.0](LICENSE). Third-party components retain their own licenses.
 
 Single Nx affected pipeline and publication gates: [release operations](docs/release.md). Installation and recovery: [install guide](docs/install.md).
