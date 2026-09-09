@@ -8,7 +8,6 @@ const SpatialWindows = lazy(() =>
 );
 
 const downloadURL = import.meta.env.VITE_GLINT_DOWNLOAD_URL as string | undefined;
-const supportedArchitectures = (import.meta.env.VITE_GLINT_ARCHITECTURES as string | undefined) ?? "Apple silicon";
 
 function App() {
   return (
@@ -33,11 +32,6 @@ function App() {
           <a className="source" href="https://github.com/8eecf0d2/glint">View on GitHub</a>
         </div>
 
-        <dl className="support" aria-label="Device support">
-          <div><dt>System</dt><dd>macOS 14+</dd></div>
-          <div><dt>Hardware</dt><dd>{supportedArchitectures}</dd></div>
-          <div><dt>Access</dt><dd>Accessibility only</dd></div>
-        </dl>
       </section>
 
       <footer>
