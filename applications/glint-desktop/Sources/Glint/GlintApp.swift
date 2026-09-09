@@ -10,8 +10,10 @@ struct GlintApp: App {
         // Packaging smoke check: no AppModel activation, shortcuts, TCC or login changes.
         if CommandLine.arguments.contains("--verify-package") {
             guard let url = BrandAssets.menuBarURL, NSImage(contentsOf: url) != nil,
-                  Bundle.main.bundleURL.pathExtension == "app" else {
-                FileHandle.standardError.write(Data("Packaged menu-bar resource is missing or unreadable\n".utf8))
+                  Bundle.main.bundleURL.pathExtension == "app",
+                  let defaults = try? ShortcutDefault.load(), defaults.count == 18,
+                  defaults.allSatisfy({ $0.action != nil && $0.shortcutBinding != nil }) else {
+                FileHandle.standardError.write(Data("Packaged menu-bar or shortcut resources are missing or unreadable\n".utf8))
                 exit(1)
             }
             print("Standalone package resources OK: \(url.path)")
