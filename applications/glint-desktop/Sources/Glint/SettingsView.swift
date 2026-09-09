@@ -63,6 +63,7 @@ struct SettingsView: View {
 
         }
         .formStyle(.grouped)
+        .navigationTitle("")
         .toolbarBackground(.hidden, for: .windowToolbar)
         .frame(width: 620, height: 720)
         .background(SettingsWindowChrome())
@@ -219,6 +220,7 @@ private struct SettingsWindowChrome: NSViewRepresentable {
                 name: NSWindow.willCloseNotification, object: window
             )
             settingsDidOpen()
+            window.title = ""
             window.titleVisibility = .hidden
             window.styleMask.insert(.fullSizeContentView)
             window.toolbarStyle = .unified
@@ -232,6 +234,8 @@ private struct SettingsWindowChrome: NSViewRepresentable {
         }
 
         @objc private func settingsDidOpen() {
+            window?.title = ""
+            window?.titleVisibility = .hidden
             if NSApp.activationPolicy() != .regular {
                 NSApp.setActivationPolicy(.regular)
             }
