@@ -4,7 +4,7 @@ import Foundation
 @MainActor
 final class UpdateChecker: ObservableObject {
     @Published private(set) var isChecking = false
-    @Published private(set) var message = "Updates are checked only when requested."
+    @Published private(set) var message = ""
     @Published private(set) var availableDownloadURL: URL?
 
     private struct Manifest: Decodable {

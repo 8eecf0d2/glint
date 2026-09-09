@@ -27,11 +27,6 @@ struct SettingsView: View {
                         Button("Request access") { model.requestAccessibility() }
                     }
                 }
-                if !model.accessibilityGranted {
-                    Text("If Glint is already enabled, remove its old Accessibility row, add this exact app copy again, and relaunch. Ad-hoc build updates can change the identity macOS stores.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
                 Toggle("Launch Glint at login", isOn: Binding(
                     get: { model.launchAtLoginEnabled },
                     set: { model.setLaunchAtLogin($0) }
@@ -45,9 +40,11 @@ struct SettingsView: View {
                         Button("Open Download") { updates.openDownload() }
                     }
                 }
-                Text(updates.message)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                if !updates.message.isEmpty {
+                    Text(updates.message)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             Section("Keyboard shortcuts") {
