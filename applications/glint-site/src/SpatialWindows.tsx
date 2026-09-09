@@ -8,6 +8,9 @@ import type { Material, Object3D } from "three";
 type WindowRect = { x: number; y: number; width: number; height: number };
 type WindowShape = { group: Group; fill: Mesh; lights: Mesh[]; materials: Material[] };
 type WindowState = WindowShape & {
+  active: boolean;
+  phase: "move" | "close" | "spawn";
+  fromRotation: number;
   slot: WindowRect;
   inset: number;
   currentRect: WindowRect;
@@ -147,6 +150,12 @@ export function SpatialWindows() {
       height: 0.32 + Math.random() * 0.2,
     }));
     let introPending = !motionPreference.matches;
+    // Keep at least one window in each column; open with four or five, not six.
+    const initiallyHidden = new Set<number>();
+    const shuffledColumns = [0, 1, 2].sort(() => Math.random() - 0.5);
+    for (const column of shuffledColumns.slice(0, Math.random() < 0.5 ? 1 : 2)) {
+      initiallyHidden.add(column * 2 + Math.floor(Math.random() * 2));
+    }
     const windowStates: WindowState[] = Array.from({ length: 6 }, (_, index) => {
       const shape = createWindow();
       const column = Math.floor(index / 2);
@@ -158,12 +167,15 @@ export function SpatialWindows() {
       // Stable stacking keeps overlapping window controls with their own window.
       shape.group.position.z = index * 0.03;
       scene.add(shape.group);
-      return { ...shape, slot, inset: 0, currentRect: rect, fromRect: rect, targetRect: rect,
+      return { ...shape, active: !initiallyHidden.has(index), phase: "move", fromRotation: 0, slot, inset: 0, currentRect: rect, fromRect: rect, targetRect: rect,
         startedAt: 0, duration: 0.4, moving: false };
     });
 
     const resolveRect = (state: WindowState): WindowRect => {
-      const slot = state.slot;
+      const index = windowStates.indexOf(state);
+      const sibling = windowStates[index ^ 1]!;
+      // A surviving window takes the space of its closed partner.
+      const slot = sibling.active ? state.slot : { ...state.slot, y: 0, height: 1 };
       const outerInset = 0.12;
       const gap = 0.11;
       const usableWidth = viewportWidth - outerInset * 2;
@@ -182,6 +194,7 @@ export function SpatialWindows() {
     let frame = 0;
     let timer = 0;
     let beatIndex = 0;
+    let beatsUntilLifecycle = 2;
     let restAfterMovement = 0.85;
     let disposed = false;
     const canAnimate = () => !disposed && !motionPreference.matches && !document.hidden;
@@ -191,8 +204,12 @@ export function SpatialWindows() {
       window.clearTimeout(timer);
     };
     const settle = () => {
-      windowStates.forEach((state) => {
-        const index = windowStates.indexOf(state);
+      windowStates.forEach((state, index) => {
+        state.group.visible = state.active && (!compact || index < 2);
+        state.group.scale.setScalar(1);
+        state.group.rotation.z = 0;
+        state.materials.forEach((material) => { material.opacity = 1; });
+        state.phase = "move";
         const messy = scatter[index]!;
         state.currentRect = introPending ? {
           x: (compact ? (index % 2 === 0 ? -0.08 : 0.08) : messy.x - 0.5) * viewportWidth,
@@ -207,22 +224,60 @@ export function SpatialWindows() {
       });
     };
     const schedule = (seconds: number) => {
-      if (canAnimate()) timer = window.setTimeout(introPending ? beginOpening : beginBeat, seconds * 1000);
+      if (!canAnimate()) return;
+      timer = window.setTimeout(introPending ? beginOpening : beginBeat, seconds * 1000);
+      if (introPending) frame = window.requestAnimationFrame(animate);
     };
     const animate = (now: number) => {
       if (!canAnimate()) return;
+      if (introPending) {
+        windowStates.forEach((state, index) => {
+          if (!state.group.visible) return;
+          const time = now / 1000;
+          const phase = index * 1.7;
+          state.currentRect = {
+            ...state.fromRect,
+            x: state.fromRect.x + Math.sin(time * 1.05 + phase) * 0.045,
+            y: state.fromRect.y + Math.sin(time * 1.3 + phase) * 0.085,
+          };
+          state.group.rotation.z = Math.sin(time * 0.8 + phase) * 0.012;
+          setWindowRect(state, state.currentRect);
+        });
+        render();
+        frame = window.requestAnimationFrame(animate);
+        return;
+      }
       let moving = false;
       windowStates.forEach((state) => {
         if (!state.moving) return;
         const raw = Math.min(Math.max((now - state.startedAt) / (state.duration * 1000), 0), 1);
-        const progress = easeOutCubic(raw);
+        const progress = state.phase === "close" ? raw * raw : easeOutCubic(raw);
         state.currentRect = interpolateRect(state.fromRect, state.targetRect, progress);
         // Elasticity follows spatial progress, so it settles with the snap.
         const squeeze = Math.sin(progress * Math.PI);
         state.currentRect.width *= 1 - squeeze * 0.012;
         state.currentRect.height *= 1 - squeeze * 0.018;
         setWindowRect(state, state.currentRect);
+        state.group.rotation.z = state.fromRotation * (1 - progress);
+        if (state.phase === "close" || state.phase === "spawn") {
+          const appearance = state.phase === "close" ? 1 - progress : progress;
+          state.group.scale.setScalar(0.08 + appearance * 0.92);
+          state.materials.forEach((material) => { material.opacity = appearance; });
+        }
         state.moving = raw < 1;
+        if (raw === 1 && state.phase === "close") {
+          state.group.visible = false;
+        } else if (raw === 1 && state.phase === "spawn") {
+          // A new window opens freely, hangs briefly, then finds its slot.
+          state.phase = "move";
+          state.fromRect = { ...state.currentRect };
+          state.targetRect = resolveRect(state);
+          state.startedAt = now + 240;
+          state.duration = 0.5;
+          state.fromRotation = 0;
+          state.moving = true;
+          state.group.scale.setScalar(1);
+        }
         moving ||= state.moving;
       });
       render();
@@ -232,10 +287,12 @@ export function SpatialWindows() {
     function beginOpening() {
       if (!canAnimate()) return;
       introPending = false;
+      window.cancelAnimationFrame(frame);
       const now = performance.now();
       windowStates.forEach((state, index) => {
         if (!state.group.visible) return;
         state.fromRect = { ...state.currentRect };
+        state.fromRotation = state.group.rotation.z;
         state.targetRect = resolveRect(state);
         state.startedAt = now + (Math.floor(index / 2) * 0.38 + (index % 2) * 0.14) * 1000;
         state.duration = 0.58;
@@ -245,8 +302,60 @@ export function SpatialWindows() {
       frame = window.requestAnimationFrame(animate);
     }
 
+    function beginLifecycle() {
+      const eligible = windowStates.filter((_, index) => !compact || index < 2);
+      const closed = eligible.filter((state) => !state.active);
+      const closable = eligible.filter((state) => state.active && windowStates[windowStates.indexOf(state) ^ 1]!.active);
+      const shouldOpen = closed.length > 0 && (closable.length === 0 || Math.random() < 0.55);
+      const candidates = shouldOpen ? closed : closable;
+      if (candidates.length === 0) return false;
+      const state = candidates[Math.floor(Math.random() * candidates.length)]!;
+      const sibling = windowStates[windowStates.indexOf(state) ^ 1]!;
+      const now = performance.now();
+      state.active = shouldOpen;
+      state.inset = 0;
+      state.phase = shouldOpen ? "spawn" : "close";
+      state.fromRotation = 0;
+      state.group.visible = true;
+      state.group.scale.setScalar(shouldOpen ? 0.08 : 1);
+      state.materials.forEach((material) => { material.opacity = shouldOpen ? 0 : 1; });
+      if (shouldOpen) {
+        const destination = resolveRect(state);
+        const width = destination.width * (0.72 + Math.random() * 0.2);
+        const height = destination.height * (0.72 + Math.random() * 0.2);
+        state.currentRect = {
+          width, height,
+          x: Math.max(-viewportWidth / 2 + width / 2 + 0.12,
+            Math.min(viewportWidth / 2 - width / 2 - 0.12, destination.x + (Math.random() - 0.5) * viewportWidth * 0.25)),
+          y: Math.max(-viewportHeight / 2 + height / 2 + 0.12,
+            Math.min(viewportHeight / 2 - height / 2 - 0.12, destination.y + (Math.random() - 0.5) * 1.2)),
+        };
+      }
+      state.fromRect = { ...state.currentRect };
+      state.targetRect = { ...state.currentRect };
+      state.startedAt = now;
+      state.duration = shouldOpen ? 0.38 : 0.34;
+      state.moving = true;
+      if (sibling.active) {
+        sibling.phase = "move";
+        sibling.fromRotation = 0;
+        sibling.fromRect = { ...sibling.currentRect };
+        sibling.targetRect = resolveRect(sibling);
+        sibling.startedAt = now + 140;
+        sibling.duration = 0.46;
+        sibling.moving = true;
+      }
+      restAfterMovement = 0.55 + Math.random() * 0.6;
+      frame = window.requestAnimationFrame(animate);
+      return true;
+    }
+
     function beginBeat() {
       if (!canAnimate()) return;
+      if (--beatsUntilLifecycle <= 0) {
+        beatsUntilLifecycle = 2 + Math.floor(Math.random() * 3);
+        if (beginLifecycle()) return;
+      }
       let beat = beats[beatIndex++ % beats.length]!;
       while (compact && (beat.column !== 0 || beat.exchangeWith !== undefined)) beat = beats[beatIndex++ % beats.length]!;
       const firstIndex = beat.column * 2;
@@ -266,13 +375,16 @@ export function SpatialWindows() {
         } else {
           state.inset = beat.inset ?? 0;
         }
+        if (!state.active) return;
+        state.phase = "move";
+        state.fromRotation = 0;
         state.fromRect = { ...state.currentRect };
         state.targetRect = resolveRect(state);
         state.startedAt = now + offset * beat.stagger * 1000;
         state.duration = beat.duration;
         state.moving = true;
       });
-      restAfterMovement = beat.rest;
+      restAfterMovement = beat.rest * (0.8 + Math.random() * 0.4);
       frame = window.requestAnimationFrame(animate);
     }
 
@@ -289,7 +401,7 @@ export function SpatialWindows() {
       windowStates.forEach((state, index) => { state.group.visible = !compact || index < 2; });
       settle();
       render();
-      schedule(introPending ? 0.95 : 0.85);
+      schedule(introPending ? 1.45 : 0.85);
     };
     const resume = () => {
       cancel();
@@ -298,7 +410,7 @@ export function SpatialWindows() {
       // No catch-up burst after switching tabs or changing motion preferences.
       settle();
       render();
-      schedule(introPending ? 0.95 : 0.85);
+      schedule(introPending ? 1.45 : 0.85);
     };
     const observer = new ResizeObserver(resize);
     observer.observe(mount);
