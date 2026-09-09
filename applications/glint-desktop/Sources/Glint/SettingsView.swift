@@ -67,7 +67,7 @@ struct SettingsView: View {
         // Reclaim the grouped form's extra space below the empty toolbar.
         .padding(.top, -24)
         .navigationTitle("")
-        .toolbarBackground(.automatic, for: .windowToolbar)
+        .toolbarBackground(.hidden, for: .windowToolbar)
         .frame(width: 620, height: 720)
         .background(SettingsWindowChrome())
         .onAppear { model.refreshSystemState() }
@@ -204,16 +204,20 @@ private struct ShortcutRecorderButton: View {
     }
 }
 
-// Keep native toolbar material over scrolling content, without a title or divider.
+// Keep toolbar chrome transparent; blur scrolled content with a separate fading material.
 private struct SettingsWindowChrome: NSViewRepresentable {
     func makeNSView(context: Context) -> ChromeView { ChromeView() }
     func updateNSView(_ nsView: ChromeView, context: Context) {}
 
     final class ChromeView: NSView {
+        private let topMaterial = FadingTitlebarMaterial()
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
             NotificationCenter.default.removeObserver(self)
-            guard let window else { return }
+            guard let window else {
+                topMaterial.removeFromSuperview()
+                return
+            }
             NotificationCenter.default.addObserver(
                 self, selector: #selector(settingsDidOpen),
                 name: NSWindow.didBecomeKeyNotification, object: window
@@ -232,8 +236,19 @@ private struct SettingsWindowChrome: NSViewRepresentable {
                 toolbar.showsBaselineSeparator = false
                 window.toolbar = toolbar
             }
-            window.titlebarAppearsTransparent = false
+            window.titlebarAppearsTransparent = true
             window.titlebarSeparatorStyle = .none
+            if let content = window.contentView, topMaterial.superview !== content {
+                topMaterial.removeFromSuperview()
+                topMaterial.translatesAutoresizingMaskIntoConstraints = false
+                content.addSubview(topMaterial, positioned: .above, relativeTo: nil)
+                NSLayoutConstraint.activate([
+                    topMaterial.topAnchor.constraint(equalTo: content.topAnchor),
+                    topMaterial.leadingAnchor.constraint(equalTo: content.leadingAnchor),
+                    topMaterial.trailingAnchor.constraint(equalTo: content.trailingAnchor),
+                    topMaterial.heightAnchor.constraint(equalToConstant: 64),
+                ])
+            }
         }
 
         @objc private func settingsDidOpen() {
@@ -248,4 +263,26 @@ private struct SettingsWindowChrome: NSViewRepresentable {
             NSApp.setActivationPolicy(.accessory)
         }
     }
+}
+
+// Within-window blending blurs the rows underneath instead of showing the desktop.
+// The alpha ramp removes the hard lower edge without changing content insets.
+private final class FadingTitlebarMaterial: NSVisualEffectView {
+    init() {
+        super.init(frame: .zero)
+        material = .headerView
+        blendingMode = .withinWindow
+        state = .active
+        maskImage = NSImage(size: NSSize(width: 1, height: 64), flipped: false) { rect in
+            NSColor.white.setFill()
+            NSRect(x: 0, y: 20, width: rect.width, height: rect.height - 20).fill()
+            NSGradient(starting: .clear, ending: .white)?.draw(
+                in: NSRect(x: 0, y: 0, width: rect.width, height: 20), angle: 90
+            )
+            return true
+        }
+    }
+
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
 }
