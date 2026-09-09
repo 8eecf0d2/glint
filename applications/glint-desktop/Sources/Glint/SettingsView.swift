@@ -63,6 +63,7 @@ struct SettingsView: View {
 
         }
         .formStyle(.grouped)
+        .toolbarBackground(.hidden, for: .windowToolbar)
         .frame(width: 620, height: 720)
         .background(SettingsWindowChrome())
         .onAppear { model.refreshSystemState() }
@@ -199,7 +200,7 @@ private struct ShortcutRecorderButton: View {
     }
 }
 
-// Keep Settings title-free without adding a toolbar above the form.
+// Extend the background through native window chrome without a toolbar divider.
 private struct SettingsWindowChrome: NSViewRepresentable {
     func makeNSView(context: Context) -> ChromeView { ChromeView() }
     func updateNSView(_ nsView: ChromeView, context: Context) {}
@@ -219,7 +220,13 @@ private struct SettingsWindowChrome: NSViewRepresentable {
             )
             settingsDidOpen()
             window.titleVisibility = .hidden
-            window.toolbar = nil
+            window.styleMask.insert(.fullSizeContentView)
+            window.toolbarStyle = .unified
+            if window.toolbar == nil {
+                let toolbar = NSToolbar(identifier: "GlintSettingsToolbar")
+                toolbar.showsBaselineSeparator = false
+                window.toolbar = toolbar
+            }
             window.titlebarAppearsTransparent = true
             window.titlebarSeparatorStyle = .none
         }
