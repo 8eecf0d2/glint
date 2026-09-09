@@ -6,6 +6,7 @@ final class ShortcutPreferences: ObservableObject {
     @Published private(set) var defaults: [ShortcutDefault] = []
     @Published private var overrides: [String: String] = [:]
     @Published var registrationFailures: Set<WindowAction> = []
+    @Published private(set) var recordingAction: WindowAction?
     var onChange: (() -> Void)?
 
     private let storageKey = "GlintShortcutOverrides"
@@ -13,6 +14,17 @@ final class ShortcutPreferences: ObservableObject {
     init() {
         defaults = (try? ShortcutDefault.load()) ?? []
         overrides = UserDefaults.standard.dictionary(forKey: storageKey) as? [String: String] ?? [:]
+    }
+
+    func beginRecording(_ action: WindowAction) {
+        recordingAction = action
+        onChange?()
+    }
+
+    func endRecording(_ action: WindowAction) {
+        guard recordingAction == action else { return }
+        recordingAction = nil
+        onChange?()
     }
 
     var activeBindings: [WindowAction: ShortcutBinding] {

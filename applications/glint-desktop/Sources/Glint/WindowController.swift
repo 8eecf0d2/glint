@@ -26,19 +26,29 @@ enum WindowControlError: LocalizedError {
     }
 }
 
-final class AXWindow: @unchecked Sendable, Hashable {
-    let element: AXUIElement
+final class ControlledWindow: @unchecked Sendable, Hashable {
+    let element: AXUIElement?
+    weak var nativeWindow: NSWindow?
+    let nativeID: ObjectIdentifier?
 
     init(element: AXUIElement) {
         self.element = element
+        nativeID = nil
     }
 
-    static func == (lhs: AXWindow, rhs: AXWindow) -> Bool {
-        CFEqual(lhs.element, rhs.element)
+    init(window: NSWindow) {
+        element = nil
+        nativeWindow = window
+        nativeID = ObjectIdentifier(window)
+    }
+
+    static func == (lhs: ControlledWindow, rhs: ControlledWindow) -> Bool {
+        if let left = lhs.element, let right = rhs.element { return CFEqual(left, right) }
+        return lhs.nativeID != nil && lhs.nativeID == rhs.nativeID
     }
 
     func hash(into hasher: inout Hasher) {
-        hasher.combine(CFHash(element))
+        if let element { hasher.combine(CFHash(element)) } else { hasher.combine(nativeID) }
     }
 }
 
@@ -46,7 +56,11 @@ final class AXWindow: @unchecked Sendable, Hashable {
 final class WindowController {
     private let applications = ExternalApplicationTracker()
     private let quantizedPolicy = QuantizedFramePolicy()
-    private var history = ApplicationWindowHistory<AXWindow>()
+    private var history = ApplicationWindowHistory<ControlledWindow>()
+
+    var targetsOwnWindow: Bool {
+        NSApp.isActive && NSApp.keyWindow?.identifier?.rawValue == "GlintSettings"
+    }
 
     func perform(_ action: WindowAction) -> Result<Void, WindowControlError> {
         if action == .undo || action == .redo { return performHistory(action) }
@@ -106,7 +120,11 @@ final class WindowController {
         return .failure(.noHistory)
     }
 
-    private func focusedWindow(for application: NSRunningApplication) -> AXWindow? {
+    private func focusedWindow(for application: NSRunningApplication) -> ControlledWindow? {
+        if application.processIdentifier == ProcessInfo.processInfo.processIdentifier {
+            guard let window = NSApp.keyWindow, window.isVisible else { return nil }
+            return ControlledWindow(window: window)
+        }
         let applicationElement = AXUIElementCreateApplication(application.processIdentifier)
         AXUIElementSetMessagingTimeout(applicationElement, Float(quantizedPolicy.timeout))
         var value: CFTypeRef?
@@ -114,27 +132,34 @@ final class WindowController {
               let value,
               CFGetTypeID(value) == AXUIElementGetTypeID()
         else { return nil }
-        let window = AXWindow(element: value as! AXUIElement)
-        AXUIElementSetMessagingTimeout(window.element, Float(quantizedPolicy.timeout))
+        let window = ControlledWindow(element: value as! AXUIElement)
+        AXUIElementSetMessagingTimeout(window.element!, Float(quantizedPolicy.timeout))
         return window
     }
 
-    private func isUnsupported(_ window: AXWindow) -> Bool {
-        copyString(kAXRoleAttribute, from: window) == (kAXSheetRole as String) ||
+    private func isUnsupported(_ window: ControlledWindow) -> Bool {
+        if let native = window.nativeWindow { return native.isSheet || native.attachedSheet != nil }
+        return copyString(kAXRoleAttribute, from: window) == (kAXSheetRole as String) ||
             copyString(kAXSubroleAttribute, from: window) == (kAXSystemDialogSubrole as String)
     }
 
-    private func copyString(_ attribute: String, from window: AXWindow) -> String? {
+    private func copyString(_ attribute: String, from window: ControlledWindow) -> String? {
+        guard let element = window.element else { return nil }
         var value: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(window.element, attribute as CFString, &value) == .success else { return nil }
+        guard AXUIElementCopyAttributeValue(element, attribute as CFString, &value) == .success else { return nil }
         return value as? String
     }
 
-    private func readFrame(_ window: AXWindow) -> GlintRect? {
+    private func readFrame(_ window: ControlledWindow) -> GlintRect? {
+        if let native = window.nativeWindow {
+            guard native.isVisible, let height = NSScreen.screens.first?.frame.height else { return nil }
+            return CoordinateConverter.axRect(fromAppKit: GlintRect(native.frame), primaryScreenHeight: height)
+        }
+        guard let element = window.element else { return nil }
         var positionValue: CFTypeRef?
         var sizeValue: CFTypeRef?
-        guard AXUIElementCopyAttributeValue(window.element, kAXPositionAttribute as CFString, &positionValue) == .success,
-              AXUIElementCopyAttributeValue(window.element, kAXSizeAttribute as CFString, &sizeValue) == .success,
+        guard AXUIElementCopyAttributeValue(element, kAXPositionAttribute as CFString, &positionValue) == .success,
+              AXUIElementCopyAttributeValue(element, kAXSizeAttribute as CFString, &sizeValue) == .success,
               let positionValue,
               let sizeValue,
               CFGetTypeID(positionValue) == AXValueGetTypeID(),
@@ -148,19 +173,29 @@ final class WindowController {
         return GlintRect(x: position.x, y: position.y, width: size.width, height: size.height)
     }
 
-    private func setFrame(_ frame: GlintRect, on window: AXWindow) -> Bool {
+    private func setFrame(_ frame: GlintRect, on window: ControlledWindow) -> Bool {
+        if let native = window.nativeWindow {
+            guard native.isVisible, let height = NSScreen.screens.first?.frame.height else { return false }
+            let rect = CoordinateConverter.appKitRect(fromAX: frame, primaryScreenHeight: height)
+            let contentMinimum = native.frameRect(forContentRect: NSRect(origin: .zero, size: native.contentMinSize)).size
+            native.setFrame(NSRect(x: rect.x, y: rect.y,
+                width: max(rect.width, native.minSize.width, contentMinimum.width),
+                height: max(rect.height, native.minSize.height, contentMinimum.height)), display: true)
+            return true
+        }
+        guard let element = window.element else { return false }
         var position = CGPoint(x: frame.x, y: frame.y)
         var size = CGSize(width: frame.width, height: frame.height)
         guard let positionValue = AXValueCreate(.cgPoint, &position),
               let sizeValue = AXValueCreate(.cgSize, &size)
         else { return false }
-        let firstSize = AXUIElementSetAttributeValue(window.element, kAXSizeAttribute as CFString, sizeValue)
-        let positionResult = AXUIElementSetAttributeValue(window.element, kAXPositionAttribute as CFString, positionValue)
-        let secondSize = AXUIElementSetAttributeValue(window.element, kAXSizeAttribute as CFString, sizeValue)
+        let firstSize = AXUIElementSetAttributeValue(element, kAXSizeAttribute as CFString, sizeValue)
+        let positionResult = AXUIElementSetAttributeValue(element, kAXPositionAttribute as CFString, positionValue)
+        let secondSize = AXUIElementSetAttributeValue(element, kAXSizeAttribute as CFString, sizeValue)
         return firstSize == .success || positionResult == .success || secondSize == .success
     }
 
-    private func apply(_ requested: GlintRect, visibleFrame: GlintRect, to window: AXWindow) -> GlintRect? {
+    private func apply(_ requested: GlintRect, visibleFrame: GlintRect, to window: ControlledWindow) -> GlintRect? {
         guard setFrame(requested, on: window), var actual = readFrame(window) else { return nil }
         var adjusted = requested
         let deadline = CFAbsoluteTimeGetCurrent() + quantizedPolicy.timeout
@@ -237,6 +272,9 @@ private final class ExternalApplicationTracker {
     }
 
     func targetApplication() -> NSRunningApplication? {
+        if NSApp.isActive, NSApp.keyWindow?.identifier?.rawValue == "GlintSettings" {
+            return NSRunningApplication.current
+        }
         remember(NSWorkspace.shared.frontmostApplication)
         guard lastApplication?.isTerminated == false else { return nil }
         return lastApplication

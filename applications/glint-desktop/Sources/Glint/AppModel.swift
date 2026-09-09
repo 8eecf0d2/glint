@@ -15,6 +15,7 @@ final class AppModel: ObservableObject {
     private let windows = WindowController()
     private var activationObserver: NSObjectProtocol?
     private var systemStateTimer: Timer?
+    private var localShortcutMonitor: Any?
 
     init() {
         shortcuts = ShortcutPreferences()
@@ -31,12 +32,31 @@ final class AppModel: ObservableObject {
         systemStateTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.refreshSystemState() }
         }
+        localShortcutMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            let handled = MainActor.assumeIsolated {
+                guard let self, self.windows.targetsOwnWindow,
+                      self.shortcuts.recordingAction == nil else { return false }
+                let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+                var modifiers: ShortcutModifiers = []
+                if flags.contains(.command) { modifiers.insert(.command) }
+                if flags.contains(.option) { modifiers.insert(.option) }
+                if flags.contains(.control) { modifiers.insert(.control) }
+                if flags.contains(.shift) { modifiers.insert(.shift) }
+                guard let action = self.shortcuts.activeBindings.first(where: {
+                    $0.value.modifiers == modifiers && GlobalShortcutManager.keyCode(for: $0.value.key) == UInt32(event.keyCode)
+                })?.key else { return false }
+                self.perform(action)
+                return true
+            }
+            return handled ? nil : event
+        }
         registerShortcuts()
     }
 
     func perform(_ action: WindowAction) {
+        guard shortcuts.recordingAction == nil else { return }
         accessibilityGranted = AXIsProcessTrusted()
-        guard accessibilityGranted else {
+        guard windows.targetsOwnWindow || accessibilityGranted else {
             requestAccessibility()
             NSSound.beep()
             return
@@ -96,7 +116,7 @@ final class AppModel: ObservableObject {
     }
 
     private func registerShortcuts() {
-        let failures = hotKeys.register(shortcuts.activeBindings)
+        let failures = hotKeys.register(shortcuts.recordingAction == nil ? shortcuts.activeBindings : [:])
         shortcuts.registrationFailures = failures
         if !failures.isEmpty {
             statusMessage = "\(failures.count) shortcut conflict(s)"

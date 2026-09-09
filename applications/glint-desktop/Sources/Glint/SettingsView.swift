@@ -71,7 +71,8 @@ struct SettingsView: View {
         .padding(.top, -24)
         .navigationTitle("")
         .toolbarBackground(.hidden, for: .windowToolbar)
-        .frame(width: 620, height: 720)
+        .frame(minWidth: 460, idealWidth: 620, maxWidth: .infinity,
+               minHeight: 340, idealHeight: 720, maxHeight: .infinity)
         .background(SettingsWindowChrome())
         .onAppear { model.refreshSystemState() }
     }
@@ -137,12 +138,22 @@ private struct ShortcutRecorderButton: View {
             }
         }
         .onDisappear { stopRecording() }
+        .onChange(of: preferences.recordingAction) { _, current in
+            if current != action && isRecording { stopRecording() }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)) { _ in
+            stopRecording()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.willCloseNotification)) { _ in
+            stopRecording()
+        }
     }
 
     private func startRecording() {
         stopRecording()
         errorMessage = nil
         isRecording = true
+        preferences.beginRecording(action)
         eventMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             MainActor.assumeIsolated { handle(event) }
             return nil
@@ -153,6 +164,7 @@ private struct ShortcutRecorderButton: View {
         if let eventMonitor { NSEvent.removeMonitor(eventMonitor) }
         eventMonitor = nil
         isRecording = false
+        preferences.endRecording(action)
     }
 
     private func handle(_ event: NSEvent) {
@@ -230,9 +242,12 @@ private struct SettingsWindowChrome: NSViewRepresentable {
                 name: NSWindow.willCloseNotification, object: window
             )
             settingsDidOpen()
+            window.identifier = NSUserInterfaceItemIdentifier("GlintSettings")
             window.title = ""
             window.titleVisibility = .hidden
-            window.styleMask.insert(.fullSizeContentView)
+            window.styleMask.formUnion([.fullSizeContentView, .resizable])
+            window.contentMinSize = NSSize(width: 460, height: 340)
+            window.contentMaxSize = NSSize(width: 10000, height: 10000)
             window.toolbarStyle = .unified
             if window.toolbar == nil {
                 let toolbar = NSToolbar(identifier: "GlintSettingsToolbar")
@@ -258,6 +273,9 @@ private struct SettingsWindowChrome: NSViewRepresentable {
         }
 
         @objc private func settingsDidOpen() {
+            window?.styleMask.insert(.resizable)
+            window?.minSize = NSSize(width: 460, height: 404)
+            window?.maxSize = NSSize(width: 10000, height: 10000)
             window?.title = ""
             window?.titleVisibility = .hidden
             if NSApp.activationPolicy() != .regular {

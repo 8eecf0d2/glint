@@ -30,6 +30,8 @@ struct GlintApp: App {
         Settings {
             SettingsView(model: model)
         }
+        .defaultSize(width: 620, height: 720)
+        .windowResizability(.contentMinSize)
     }
 }
 

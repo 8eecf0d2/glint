@@ -1,9 +1,13 @@
-Glint 0.1.0 is the first public test release of a native macOS menu-bar window manager inspired by Spectacle.
+Glint 0.1.1 improves the native Settings experience and development workflow.
 
-This archive targets Apple silicon (arm64). macOS 14 is the build minimum; fresh-machine installation and the supported-OS acceptance matrix are still being tested. Intel is not included.
+- Simplified menu bar menu; removed positioning menu items and pause functionality. All 18 keyboard commands remain available.
+- Refined Settings layout, compact spacing and fading title-bar blur. Glint appears in the Dock while Settings is open.
+- Added inline version, Open folder and Check for updates controls, plus a clear Accessibility status.
+- Settings now supports window positioning, resizing and undo/redo with Glint shortcuts. Window commands are suspended while recording a shortcut and restored when recording ends.
+- Local development now automatically reuses a free persistent signing identity and safely replaces a fixed installed copy.
 
-The hosted pipeline verified the packaged resources, all 18 shortcut defaults, architecture, version metadata, checksums and ad-hoc signature. See INSTALL.md for installation, manual updates, rollback and removal.
+This archive targets Apple silicon (arm64), with macOS 14 as the build minimum. Fresh-machine installation and the supported-OS acceptance matrix remain pending. Intel is not included.
 
-The app has no Apple Developer ID signature or notarization. macOS approval and Accessibility permission are required, and managed Macs may block installation. Updates are checked only on request and never installed automatically. Replacing an ad-hoc build can require granting Accessibility again.
+The public app is ad-hoc signed, without Apple Developer ID signing or notarization. Local development signing is separate and does not change public-release trust. Public updates may require renewed Accessibility approval. See INSTALL.md for installation and recovery. Updates are checked on request and never installed automatically.
 
-Spectacle attribution is included in THIRD_PARTY_NOTICES.md. Glint is licensed under Apache 2.0; see LICENSE. Please treat this release as an initial installation test, not a completed fresh-machine compatibility certification.
+Glint is licensed under Apache 2.0. Spectacle attribution is included in THIRD_PARTY_NOTICES.md.
