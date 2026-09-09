@@ -1,3 +1,25 @@
 # Third-party references
 
-Spectacle 1.2 by Eric Czarny is the behavior reference, pinned to `eacf5bb6499257c83e03f51660f38106af8ee914` (MIT). Its notice is retained in [docs/reference/SPECTACLE-LICENSE.md](docs/reference/SPECTACLE-LICENSE.md). No Spectacle implementation is shipped in this scaffold. Retain the notice when porting source or fixtures and include relevant notices in release artifacts. Other package licenses are provided by their dependencies; inventory them before release. Glint's own publication license remains a release decision.
+Spectacle 1.2 by Eric Czarny is the behavior reference, pinned to `eacf5bb6499257c83e03f51660f38106af8ee914` (MIT). Glint's geometry is a clean Swift implementation derived from the reference behavior, and the committed development fixtures are outputs of its original calculators. No Spectacle JavaScript or Objective-C is linked into the app. Other package licenses are provided by their dependencies; inventory them before release. Glint's own publication license remains a release decision.
+
+## Spectacle MIT License
+
+Copyright (c) 2016 Eric Czarny <eczarny@gmail.com>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to do
+so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

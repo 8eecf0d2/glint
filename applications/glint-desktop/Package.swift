@@ -5,5 +5,11 @@ let package = Package(
     platforms: [.macOS(.v14)],
     products: [.executable(name: "Glint", targets: ["Glint"])],
     dependencies: [.package(path: "../../libraries/glint-core")],
-    targets: [.executableTarget(name: "Glint", dependencies: [.product(name: "GlintCore", package: "glint-core")])]
+    targets: [
+        .executableTarget(
+            name: "Glint",
+            dependencies: [.product(name: "GlintCore", package: "glint-core")],
+            resources: [.copy("Resources/GlintMenuBar.svg")]
+        )
+    ]
 )
