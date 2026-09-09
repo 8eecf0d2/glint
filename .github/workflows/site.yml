@@ -1,0 +1,48 @@
+name: Verify marketing deployment
+
+on:
+  pull_request:
+    paths:
+      - 'applications/glint-site/**'
+      - 'brand/**'
+      - 'package*.json'
+      - 'nx.json'
+      - 'tsconfig.base.json'
+      - '.nvmrc'
+      - '.github/workflows/site.yml'
+      - '.github/workflows/deploy-site.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'applications/glint-site/**'
+      - 'brand/**'
+      - 'package*.json'
+      - 'nx.json'
+      - 'tsconfig.base.json'
+      - '.nvmrc'
+      - '.github/workflows/site.yml'
+      - '.github/workflows/deploy-site.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CI: true
+      NX_DAEMON: 'false'
+      NX_TUI: 'false'
+      WRANGLER_SEND_METRICS: 'false'
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm --workspace glint-site run typecheck
+      - run: node --test applications/glint-site/tests/windowLayout.test.mjs
+      - name: Build and validate Wrangler configuration without publishing
+        run: npm run check:site:deployment

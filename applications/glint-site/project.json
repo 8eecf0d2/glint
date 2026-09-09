@@ -2,19 +2,55 @@
   "name": "glint-site",
   "projectType": "application",
   "sourceRoot": "applications/glint-site/src",
-  "tags": ["scope:site", "type:application"],
+  "tags": [
+    "scope:site",
+    "type:application"
+  ],
   "targets": {
     "build": {
       "executor": "nx:run-commands",
-      "options": { "command": "vite build", "cwd": "applications/glint-site" }
+      "options": {
+        "command": "vite build",
+        "cwd": "applications/glint-site"
+      }
     },
     "typecheck": {
       "executor": "nx:run-commands",
-      "options": { "command": "tsc --noEmit", "cwd": "applications/glint-site" }
+      "options": {
+        "command": "tsc --noEmit",
+        "cwd": "applications/glint-site"
+      }
     },
     "dev": {
       "executor": "nx:run-commands",
-      "options": { "command": "vite", "cwd": "applications/glint-site" }
+      "options": {
+        "command": "vite",
+        "cwd": "applications/glint-site"
+      }
+    },
+    "deploy": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": {
+        "command": "npm run deploy:worker",
+        "cwd": "applications/glint-site"
+      }
+    },
+    "check-deployment": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": {
+        "command": "npm run check:deployment",
+        "cwd": "applications/glint-site"
+      }
+    },
+    "preview-worker": {
+      "executor": "nx:run-commands",
+      "cache": false,
+      "options": {
+        "command": "npm run develop:worker",
+        "cwd": "applications/glint-site"
+      }
     }
   }
 }

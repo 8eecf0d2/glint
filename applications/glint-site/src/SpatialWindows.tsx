@@ -4,15 +4,17 @@ import {
   Scene, Shape, ShapeGeometry, WebGLRenderer,
 } from "three";
 import type { Material, Object3D } from "three";
+import { initialLayout, planRelocation, regions } from "./windowLayout";
+import type { Divider, LayoutRect, Placement } from "./windowLayout";
 
-type WindowRect = { x: number; y: number; width: number; height: number };
+type WindowRect = LayoutRect;
 type WindowShape = { group: Group; fill: Mesh; lights: Mesh[]; materials: Material[] };
 type WindowState = WindowShape & {
+  id: number;
   active: boolean;
+  slot: number;
   phase: "move" | "close" | "spawn";
   fromRotation: number;
-  slot: WindowRect;
-  inset: number;
   currentRect: WindowRect;
   fromRect: WindowRect;
   targetRect: WindowRect;
@@ -20,32 +22,6 @@ type WindowState = WindowShape & {
   duration: number;
   moving: boolean;
 };
-type Beat = {
-  column: number;
-  split?: number;
-  exchangeWith?: number;
-  inset?: number;
-  stagger: number;
-  duration: number;
-  rest: number;
-};
-
-// Short, varied phrases: paired snaps, individual resizes and occasional
-// cross-screen exchanges. At least two windows stay anchored in every beat.
-const beats: Beat[] = [
-  { column: 0, split: 0.5, stagger: 0.09, duration: 0.34, rest: 0.65 },
-  { column: 1, split: 0.5, stagger: 0.08, duration: 0.32, rest: 0.5 },
-  { column: 2, inset: 0.08, stagger: 0, duration: 0.16, rest: 0.04 },
-  { column: 2, inset: 0, stagger: 0, duration: 0.22, rest: 0.8 },
-  { column: 0, exchangeWith: 2, stagger: 0.09, duration: 0.42, rest: 1.0 },
-  { column: 2, split: 0.5, stagger: 0.1, duration: 0.34, rest: 0.55 },
-  { column: 0, inset: 0.07, stagger: 0, duration: 0.16, rest: 0.04 },
-  { column: 0, inset: 0, stagger: 0, duration: 0.22, rest: 0.65 },
-  { column: 0, split: 1 / 3, stagger: 0.08, duration: 0.36, rest: 0.5 },
-  { column: 1, split: 2 / 3, stagger: 0.09, duration: 0.34, rest: 0.95 },
-  { column: 0, exchangeWith: 2, stagger: 0.08, duration: 0.4, rest: 0.6 },
-  { column: 2, split: 1 / 3, stagger: 0.09, duration: 0.32, rest: 1.15 },
-];
 
 function interpolateRect(from: WindowRect, to: WindowRect, progress: number): WindowRect {
   return {
@@ -150,51 +126,40 @@ export function SpatialWindows() {
       height: 0.32 + Math.random() * 0.2,
     }));
     let introPending = !motionPreference.matches;
-    // Keep at least one window in each column; open with four or five, not six.
-    const initiallyHidden = new Set<number>();
-    const shuffledColumns = [0, 1, 2].sort(() => Math.random() - 0.5);
-    for (const column of shuffledColumns.slice(0, Math.random() < 0.5 ? 1 : 2)) {
-      initiallyHidden.add(column * 2 + Math.floor(Math.random() * 2));
-    }
+    const layout = initialLayout();
     const windowStates: WindowState[] = Array.from({ length: 6 }, (_, index) => {
       const shape = createWindow();
-      const column = Math.floor(index / 2);
-      const split = column === 1 ? 2 / 3 : 1 / 3;
-      const lower = index % 2 === 1;
-      const slot = { x: column / 3, y: lower ? split : 0, width: 1 / 3, height: lower ? 1 - split : split };
       const rect = { x: 0, y: 0, width: 1, height: 1 };
       shape.materials.forEach((material) => { material.opacity = 1; });
-      // Stable stacking keeps overlapping window controls with their own window.
       shape.group.position.z = index * 0.03;
       scene.add(shape.group);
-      return { ...shape, active: !initiallyHidden.has(index), phase: "move", fromRotation: 0, slot, inset: 0, currentRect: rect, fromRect: rect, targetRect: rect,
+      return { ...shape, id: index, active: [0, 1, 2, 4].includes(index), slot: index,
+        phase: "move", fromRotation: 0, currentRect: rect, fromRect: rect, targetRect: rect,
         startedAt: 0, duration: 0.4, moving: false };
     });
-
+    const visibleStates = () => windowStates.filter((state) => state.active && (!compact || state.id < 2));
+    const occupied = (): Placement[] => visibleStates().map(({ id, slot }) => ({ id, slot }));
+    const cells = () => regions(layout, compact, Math.min(0.2, 1.1 / viewportWidth), 0.2);
     const resolveRect = (state: WindowState): WindowRect => {
-      const index = windowStates.indexOf(state);
-      const sibling = windowStates[index ^ 1]!;
-      // A surviving window takes the space of its closed partner.
-      const slot = sibling.active ? state.slot : { ...state.slot, y: 0, height: 1 };
-      const outerInset = 0.12;
-      const gap = 0.11;
+      const slot = cells()[state.slot] ?? cells()[0]!;
+      const outerInset = 0.22;
+      const gap = 0.18;
       const usableWidth = viewportWidth - outerInset * 2;
-      const usableHeight = viewportHeight - outerInset * 2;
-      // Mobile has one complete pair, rather than a cropped six-window layout.
-      const left = compact ? 0 : slot.x;
-      const width = compact ? 1 : slot.width;
+      // The canvas already reserves the footer gap; do not add a second bottom inset.
+      const usableHeight = viewportHeight - outerInset + gap / 2;
       return {
-        x: -viewportWidth / 2 + outerInset + (left + width / 2) * usableWidth,
+        x: -viewportWidth / 2 + outerInset + (slot.x + slot.width / 2) * usableWidth,
         y: viewportHeight / 2 - outerInset - (slot.y + slot.height / 2) * usableHeight,
-        width: (width * usableWidth - gap) * (1 - state.inset),
-        height: (slot.height * usableHeight - gap) * (1 - state.inset),
+        width: slot.width * usableWidth - gap,
+        height: slot.height * usableHeight - gap,
       };
     };
 
     let frame = 0;
     let timer = 0;
     let beatIndex = 0;
-    let beatsUntilLifecycle = 2;
+    const pending: (() => void)[] = [];
+    let wasCompact = false;
     let restAfterMovement = 0.85;
     let disposed = false;
     const canAnimate = () => !disposed && !motionPreference.matches && !document.hidden;
@@ -204,6 +169,15 @@ export function SpatialWindows() {
       window.clearTimeout(timer);
     };
     const settle = () => {
+      pending.length = 0;
+      // Re-establish unique ownership when switching between two and six cells.
+      if (wasCompact !== compact) {
+        windowStates.forEach((state) => {
+          state.slot = state.id;
+          state.active = [0, 1, 2, 4].includes(state.id);
+        });
+        wasCompact = compact;
+      }
       windowStates.forEach((state, index) => {
         state.group.visible = state.active && (!compact || index < 2);
         state.group.scale.setScalar(1);
@@ -225,7 +199,12 @@ export function SpatialWindows() {
     };
     const schedule = (seconds: number) => {
       if (!canAnimate()) return;
-      timer = window.setTimeout(introPending ? beginOpening : beginBeat, seconds * 1000);
+      timer = window.setTimeout(() => {
+        if (!canAnimate()) return;
+        if (introPending) beginOpening();
+        else if (pending.length) pending.shift()!();
+        else beginBeat();
+      }, seconds * 1000);
       if (introPending) frame = window.requestAnimationFrame(animate);
     };
     const animate = (now: number) => {
@@ -253,10 +232,6 @@ export function SpatialWindows() {
         const raw = Math.min(Math.max((now - state.startedAt) / (state.duration * 1000), 0), 1);
         const progress = state.phase === "close" ? raw * raw : easeOutCubic(raw);
         state.currentRect = interpolateRect(state.fromRect, state.targetRect, progress);
-        // Elasticity follows spatial progress, so it settles with the snap.
-        const squeeze = Math.sin(progress * Math.PI);
-        state.currentRect.width *= 1 - squeeze * 0.012;
-        state.currentRect.height *= 1 - squeeze * 0.018;
         setWindowRect(state, state.currentRect);
         state.group.rotation.z = state.fromRotation * (1 - progress);
         if (state.phase === "close" || state.phase === "spawn") {
@@ -268,21 +243,14 @@ export function SpatialWindows() {
         if (raw === 1 && state.phase === "close") {
           state.group.visible = false;
         } else if (raw === 1 && state.phase === "spawn") {
-          // A new window opens freely, hangs briefly, then finds its slot.
           state.phase = "move";
-          state.fromRect = { ...state.currentRect };
-          state.targetRect = resolveRect(state);
-          state.startedAt = now + 120;
-          state.duration = 0.38;
-          state.fromRotation = 0;
-          state.moving = true;
           state.group.scale.setScalar(1);
         }
         moving ||= state.moving;
       });
       render();
       if (moving) frame = window.requestAnimationFrame(animate);
-      else schedule(restAfterMovement);
+      else schedule(pending.length ? 0.1 : restAfterMovement);
     };
     function beginOpening() {
       if (!canAnimate()) return;
@@ -302,93 +270,130 @@ export function SpatialWindows() {
       frame = window.requestAnimationFrame(animate);
     }
 
-    function beginLifecycle() {
-      const eligible = windowStates.filter((_, index) => !compact || index < 2);
-      const closed = eligible.filter((state) => !state.active);
-      const closable = eligible.filter((state) => state.active && windowStates[windowStates.indexOf(state) ^ 1]!.active);
-      const shouldOpen = closed.length > 0 && (closable.length === 0 || Math.random() < 0.55);
-      const candidates = shouldOpen ? closed : closable;
-      if (candidates.length === 0) return false;
-      const state = candidates[Math.floor(Math.random() * candidates.length)]!;
-      const sibling = windowStates[windowStates.indexOf(state) ^ 1]!;
+    function transition(states: WindowState[], duration = 0.48, targets?: WindowRect[]) {
       const now = performance.now();
+      states.forEach((state, index) => {
+        state.fromRect = { ...state.currentRect };
+        state.targetRect = targets?.[index] ?? resolveRect(state);
+        state.fromRotation = 0;
+        state.startedAt = now;
+        state.duration = duration;
+        state.moving = true;
+      });
+      frame = window.requestAnimationFrame(animate);
+    }
+
+    function resizeBoundary(divider: Divider, ratio: number) {
+      layout[divider] = ratio;
+      // Every affected neighbor shares the same clock/easing. Delaying even one
+      // would let the growing side overrun the shrinking side mid-animation.
+      visibleStates().forEach((state) => { state.phase = "move"; });
+      transition(visibleStates(), 0.46);
+    }
+
+    function queueTravel(placements: Placement[]) {
+      const movers = placements.map(({ id }) => windowStates[id]!);
+      // Fit inside both source and destination before crossing the desktop.
+      // Growth happens after arrival, wholly inside the reserved empty region.
+      const targets = placements.map(({ slot }, index) => resolveRect({ ...movers[index]!, slot }));
+      const travelSizes = targets.map((target, index) => ({
+        width: Math.min(target.width, movers[index]!.currentRect.width),
+        height: Math.min(target.height, movers[index]!.currentRect.height),
+      }));
+      const needsFit = movers.some((state, index) =>
+        state.currentRect.width > travelSizes[index]!.width + 0.001
+        || state.currentRect.height > travelSizes[index]!.height + 0.001);
+      if (needsFit) pending.push(() => transition(movers, 0.24,
+        movers.map((state, index) => ({ ...state.currentRect, ...travelSizes[index]! }))));
+      pending.push(() => {
+        placements.forEach(({ slot }, index) => {
+          movers[index]!.slot = slot;
+          movers[index]!.group.position.z = 1 + index * 0.03;
+        });
+        transition(movers, 0.52, targets.map((target, index) => ({ ...target, ...travelSizes[index]! })));
+      });
+      if (targets.some((target, index) => target.width > travelSizes[index]!.width + 0.001
+        || target.height > travelSizes[index]!.height + 0.001)) {
+        pending.push(() => transition(movers, 0.28, targets));
+      }
+    }
+
+    function beginRelocation() {
+      const owners = occupied();
+      const capacity = compact ? 2 : 6;
+      const vacancies = Array.from({ length: capacity }, (_, i) => i)
+        .filter((slot) => !owners.some((owner) => owner.slot === slot));
+      if (!vacancies.length) return false;
+      const source = owners[Math.floor(Math.random() * owners.length)]!;
+      const neighbors = owners.filter((owner) => owner.id !== source.id);
+      const target = neighbors.length && Math.random() < 0.65
+        ? neighbors[Math.floor(Math.random() * neighbors.length)]!.slot
+        : vacancies[Math.floor(Math.random() * vacancies.length)]!;
+      const stages = planRelocation(owners, source.id, target, capacity);
+      stages.forEach((stage) => queueTravel(stage));
+      // Two independent moves may share a travel phase when there is room.
+      if (stages.length === 1 && vacancies.length > 1 && neighbors.length && Math.random() < 0.6) {
+        pending.length = 0;
+        const companion = neighbors[Math.floor(Math.random() * neighbors.length)]!;
+        queueTravel([{ id: source.id, slot: target },
+          { id: companion.id, slot: vacancies.find((slot) => slot !== target)! }]);
+      }
+      if (!pending.length) return false;
+      pending.shift()!();
+      return true;
+    }
+
+    function beginLifecycle() {
+      const eligible = windowStates.filter((state) => !compact || state.id < 2);
+      const active = visibleStates();
+      const capacity = compact ? 2 : 6;
+      const vacancies = Array.from({ length: capacity }, (_, i) => i)
+        .filter((slot) => !active.some((state) => state.slot === slot));
+      const closed = eligible.filter((state) => !state.active);
+      const shouldOpen = active.length <= (compact ? 1 : 3)
+        || (active.length < (compact ? 2 : 5) && Math.random() < 0.55);
+      const choices = shouldOpen ? closed : active;
+      if (!choices.length || (shouldOpen && !vacancies.length)) return false;
+      const state = choices[Math.floor(Math.random() * choices.length)]!;
       state.active = shouldOpen;
-      state.inset = 0;
       state.phase = shouldOpen ? "spawn" : "close";
-      state.fromRotation = 0;
       state.group.visible = true;
+      if (shouldOpen) {
+        state.slot = vacancies[Math.floor(Math.random() * vacancies.length)]!;
+        state.currentRect = resolveRect(state);
+      }
       state.group.scale.setScalar(shouldOpen ? 0.08 : 1);
       state.materials.forEach((material) => { material.opacity = shouldOpen ? 0 : 1; });
-      if (shouldOpen) {
-        const destination = resolveRect(state);
-        const width = destination.width * (0.72 + Math.random() * 0.2);
-        const height = destination.height * (0.72 + Math.random() * 0.2);
-        state.currentRect = {
-          width, height,
-          x: Math.max(-viewportWidth / 2 + width / 2 + 0.12,
-            Math.min(viewportWidth / 2 - width / 2 - 0.12, destination.x + (Math.random() - 0.5) * viewportWidth * 0.25)),
-          y: Math.max(-viewportHeight / 2 + height / 2 + 0.12,
-            Math.min(viewportHeight / 2 - height / 2 - 0.12, destination.y + (Math.random() - 0.5) * 1.2)),
-        };
-      }
-      state.fromRect = { ...state.currentRect };
-      state.targetRect = { ...state.currentRect };
-      state.startedAt = now;
-      state.duration = shouldOpen ? 0.3 : 0.26;
-      state.moving = true;
-      if (sibling.active) {
-        sibling.phase = "move";
-        sibling.fromRotation = 0;
-        sibling.fromRect = { ...sibling.currentRect };
-        sibling.targetRect = resolveRect(sibling);
-        sibling.startedAt = now + 100;
-        sibling.duration = 0.36;
-        sibling.moving = true;
-      }
-      restAfterMovement = 0.4 + Math.random() * 0.45;
-      frame = window.requestAnimationFrame(animate);
+      transition([state], shouldOpen ? 0.32 : 0.28, [{ ...state.currentRect }]);
       return true;
     }
 
     function beginBeat() {
       if (!canAnimate()) return;
-      // Keep shrink/restore together; spawning or closing must not strand a
-      // window in the smaller pose for an extra lifecycle beat.
-      const restoringWindow = beats[beatIndex % beats.length]!.inset === 0;
-      if (!restoringWindow && --beatsUntilLifecycle <= 0) {
-        beatsUntilLifecycle = 2 + Math.floor(Math.random() * 3);
-        if (beginLifecycle()) return;
-      }
-      let beat = beats[beatIndex++ % beats.length]!;
-      while (compact && (beat.column !== 0 || beat.exchangeWith !== undefined)) beat = beats[beatIndex++ % beats.length]!;
-      const firstIndex = beat.column * 2;
-      const indices = beat.exchangeWith !== undefined
-        ? [firstIndex, firstIndex + 1, beat.exchangeWith * 2, beat.exchangeWith * 2 + 1]
-        : beat.split === undefined ? [firstIndex] : [firstIndex, firstIndex + 1];
-      const firstX = windowStates[firstIndex]!.slot.x;
-      const otherX = beat.exchangeWith === undefined ? firstX : windowStates[beat.exchangeWith * 2]!.slot.x;
-      const now = performance.now();
-      indices.forEach((index, offset) => {
-        const state = windowStates[index]!;
-        if (beat.exchangeWith !== undefined) {
-          state.slot.x = offset < 2 ? otherX : firstX;
-        } else if (beat.split !== undefined) {
-          state.slot.y = offset === 0 ? 0 : beat.split;
-          state.slot.height = offset === 0 ? beat.split : 1 - beat.split;
-        } else {
-          state.inset = beat.inset ?? 0;
-        }
-        if (!state.active) return;
-        state.phase = "move";
-        state.fromRotation = 0;
-        state.fromRect = { ...state.currentRect };
-        state.targetRect = resolveRect(state);
-        state.startedAt = now + offset * beat.stagger * 1000;
-        state.duration = beat.duration;
-        state.moving = true;
-      });
-      restAfterMovement = beat.rest * (0.8 + Math.random() * 0.4);
-      frame = window.requestAnimationFrame(animate);
+      windowStates.forEach((state) => { state.group.position.z = state.id * 0.03; });
+      restAfterMovement = 0.38 + Math.random() * 0.42;
+      const beat = beatIndex++;
+      // Establish the cause/effect with a readable 50/50 → 75/25 opening.
+      if (beat === 0) { resizeBoundary(compact ? "rows" : "top", compact ? 0.6 : 0.75); return; }
+      if (beat % 5 === 4 && beginLifecycle()) return;
+      if (beat % 3 === 2 && beginRelocation()) return;
+      const dividers: Divider[] = compact ? ["rows"] : ["top", "rows", "bottom", "lowerLeft", "lowerRight"];
+      const before = cells();
+      const choices = dividers.flatMap((divider) => (divider === "top" || divider === "bottom"
+        ? [0.25, 0.5, 0.75] : [0.2, 0.4, 0.6, 0.8])
+        .filter((ratio) => Math.abs(ratio - layout[divider]) > 0.1)
+        .map((ratio) => ({ divider, ratio })))
+        .filter(({ divider, ratio }) => {
+          const after = regions({ ...layout, [divider]: ratio }, compact, Math.min(0.2, 1.1 / viewportWidth), 0.2);
+          return visibleStates().some(({ slot }) => {
+            const a = before[slot]!;
+            const b = after[slot]!;
+            return Math.max(Math.abs(a.width - b.width), Math.abs(a.height - b.height)) > 0.14;
+          });
+        });
+      const choice = choices[Math.floor(Math.random() * choices.length)];
+      if (choice) resizeBoundary(choice.divider, choice.ratio);
+      else schedule(0.4);
     }
 
     const resize = () => {

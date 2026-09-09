@@ -5,13 +5,13 @@ cd "$(dirname "$0")/.."
 version="${GLINT_VERSION:?Set GLINT_VERSION, for example 1.0.0}"
 download_base_url="${GLINT_DOWNLOAD_BASE_URL:?Set GLINT_DOWNLOAD_BASE_URL to the public binary directory}"
 update_feed_url="${GLINT_UPDATE_FEED_URL:-${download_base_url%/}/latest.json}"
-build_number="${GLINT_BUILD_NUMBER:-${version//./}}"
+build_number="${GLINT_BUILD_NUMBER:?Set a monotonic GLINT_BUILD_NUMBER}"
 architectures="${GLINT_ARCHS:-arm64}"
 release_dir="applications/glint-desktop/dist/releases/$version"
 archive="Glint-$version-macos.zip"
 source_epoch="${SOURCE_DATE_EPOCH:-$(git show -s --format=%ct HEAD)}"
 
-[[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]] || {
+[[ "$version" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] || {
   printf 'GLINT_VERSION must be a semantic version without a leading v\n' >&2
   exit 1
 }
@@ -49,6 +49,10 @@ for architecture in $architectures; do
       ;;
   esac
 done
+
+if ! $has_arm64 && ! $has_x86_64; then
+  echo "At least one architecture is required" >&2; exit 1
+fi
 
 if $has_arm64 && $has_x86_64; then
   cask_arch_requirement=""
@@ -110,5 +114,10 @@ sed \
   -e "s|__ARCH_REQUIREMENT__|$cask_arch_requirement|g" \
   distribution/homebrew/Casks/glint.rb.template > "$release_dir/glint.rb"
 
+cp docs/install.md "$release_dir/INSTALL.md"
+cp docs/release-notes.md "$release_dir/RELEASE-NOTES.md"
+if [ -f LICENSE ]; then cp LICENSE "$release_dir/LICENSE"; fi
+# Cover every published payload, including the manifest, notices and cask.
+(cd "$release_dir" && rm SHA256SUMS && shasum -a 256 * > SHA256SUMS.tmp && mv SHA256SUMS.tmp SHA256SUMS)
 codesign --verify --deep --strict applications/glint-desktop/dist/Glint.app
 printf 'Release artifacts: %s\n' "$release_dir"

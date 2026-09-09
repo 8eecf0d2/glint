@@ -42,6 +42,7 @@ for resource in "$bin_path"/*.bundle; do
 done
 cp THIRD_PARTY_NOTICES.md "$app/Contents/Resources/THIRD_PARTY_NOTICES.md"
 cp THIRD_PARTY_NOTICES.md "$app/Contents/Resources/SPECTACLE-LICENSE.md"
+if [ -f LICENSE ]; then cp LICENSE "$app/Contents/Resources/LICENSE"; fi
 if [ -n "${GLINT_PROVENANCE_FILE:-}" ]; then
   cp "$GLINT_PROVENANCE_FILE" "$app/Contents/Resources/BUILD-PROVENANCE.txt"
 fi

@@ -1,70 +1,91 @@
-name: Build private release artifact
+name: Build and release Glint
 
 on:
+  push:
+    tags: ['v*']
+    branches: ['codex/GLNT-16-release-pipeline']
   workflow_dispatch:
     inputs:
       version:
-        description: Semantic version without a leading v
-        required: true
-        type: string
-      build_number:
-        description: Monotonic macOS bundle build number
-        required: true
-        type: string
-      architectures:
-        description: Space-separated architectures
-        required: true
-        default: arm64
-        type: string
-      download_base_url:
-        description: Public directory that will contain the versioned ZIP
-        required: true
-        type: string
-      update_feed_url:
-        description: Stable public URL for latest.json
+        description: Stable version without v (rehearsal only; never publishes)
         required: true
         type: string
 
 permissions:
   contents: read
 
+concurrency:
+  group: glint-release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: macos-15
+    timeout-minutes: 30
+    outputs:
+      version: ${{ steps.metadata.outputs.version }}
     env:
-      NX_DAEMON: "false"
-      NX_TUI: "false"
-      GLINT_VERSION: ${{ inputs.version }}
-      GLINT_BUILD_NUMBER: ${{ inputs.build_number }}
-      GLINT_ARCHS: ${{ inputs.architectures }}
-      GLINT_DOWNLOAD_BASE_URL: ${{ inputs.download_base_url }}
-      GLINT_UPDATE_FEED_URL: ${{ inputs.update_feed_url }}
+      NX_DAEMON: 'false'
+      NX_TUI: 'false'
+      GLINT_ARCHS: arm64
     steps:
-      - name: Assert private repository
-        env:
-          REPOSITORY_PRIVATE: ${{ github.event.repository.private }}
-        run: test "$REPOSITORY_PRIVATE" = "true"
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
           cache: npm
-      - run: npm ci
-      - run: npm run typecheck
-      - run: npm run build
-      - run: npm test
-      - run: npm run release:desktop
-      - name: Verify archive contents and signature
+      - name: Resolve release metadata
+        id: metadata
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
         run: |
-          release_dir="applications/glint-desktop/dist/releases/$GLINT_VERSION"
-          archive="$release_dir/Glint-$GLINT_VERSION-macos.zip"
-          (cd "$release_dir" && shasum -a 256 -c SHA256SUMS)
-          destination="$(mktemp -d)"
-          ditto -x -k "$archive" "$destination"
-          codesign --verify --deep --strict "$destination/Glint.app"
+          version="${REQUESTED_VERSION:-0.0.0}"
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then version="${GITHUB_REF_NAME#v}"; fi
+          [[ "$version" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]] || { echo 'Expected stable X.Y.Z version'; exit 1; }
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "GLINT_VERSION=$version" >> "$GITHUB_ENV"
+          echo "GLINT_BUILD_NUMBER=$GITHUB_RUN_NUMBER" >> "$GITHUB_ENV"
+          echo "GLINT_DOWNLOAD_BASE_URL=https://github.com/$GITHUB_REPOSITORY/releases/download/v$version" >> "$GITHUB_ENV"
+          echo "GLINT_UPDATE_FEED_URL=https://github.com/$GITHUB_REPOSITORY/releases/latest/download/latest.json" >> "$GITHUB_ENV"
+      - run: npm ci
+      - run: npm run release:desktop
+      - name: Verify extracted package
+        run: bash scripts/verify-release.sh
+      - name: Critical desktop tests
+        run: swift test --package-path libraries/glint-core
       - uses: actions/upload-artifact@v4
         with:
-          name: glint-${{ inputs.version }}-private-release
-          path: applications/glint-desktop/dist/releases/${{ inputs.version }}
+          name: glint-${{ steps.metadata.outputs.version }}-arm64
+          path: applications/glint-desktop/dist/releases/${{ steps.metadata.outputs.version }}
           if-no-files-found: error
           retention-days: 14
+
+  publish:
+    # Manual dispatch is always a rehearsal. The owner must make the repo public
+    # and deliberately push a version tag after accepting the release gates.
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v') && github.event.repository.private == false
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: glint-${{ needs.build.outputs.version }}-arm64
+          path: release
+      - name: Publish verified assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          cd release
+          sha256sum -c SHA256SUMS
+          test -s LICENSE || { echo "Resolve and add the product LICENSE before publication"; exit 1; }
+          if grep -q "Glint's product license must be settled" RELEASE-NOTES.md; then
+            echo "Replace preparation release notes with accepted terms and OS evidence"; exit 1
+          fi
+          # Refuse to replace an existing release or silently create a tag.
+          gh release create "$RELEASE_TAG" ./* --verify-tag --latest \
+            --title "Glint ${RELEASE_TAG#v}" --notes-file RELEASE-NOTES.md
