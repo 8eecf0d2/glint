@@ -199,7 +199,7 @@ private struct ShortcutRecorderButton: View {
     }
 }
 
-// A native unified toolbar gives the traffic lights the standard, roomier inset.
+// Keep Settings title-free without adding a toolbar above the form.
 private struct SettingsWindowChrome: NSViewRepresentable {
     func makeNSView(context: Context) -> ChromeView { ChromeView() }
     func updateNSView(_ nsView: ChromeView, context: Context) {}
@@ -219,14 +219,9 @@ private struct SettingsWindowChrome: NSViewRepresentable {
             )
             settingsDidOpen()
             window.titleVisibility = .hidden
-            window.toolbarStyle = .unified
+            window.toolbar = nil
             window.titlebarAppearsTransparent = true
             window.titlebarSeparatorStyle = .none
-            if window.toolbar == nil {
-                let toolbar = NSToolbar(identifier: "GlintSettingsToolbar")
-                toolbar.showsBaselineSeparator = false
-                window.toolbar = toolbar
-            }
         }
 
         @objc private func settingsDidOpen() {
