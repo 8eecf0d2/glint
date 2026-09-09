@@ -34,6 +34,9 @@ struct SettingsView: View {
                 HStack {
                     Text("Glint \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "Development")")
                     Spacer()
+                    Button("Open folder") {
+                        NSWorkspace.shared.activateFileViewerSelecting([Bundle.main.bundleURL])
+                    }
                     Button(updates.isChecking ? "Checking…" : "Check for updates") { updates.check() }
                         .disabled(updates.isChecking)
                     if updates.availableDownloadURL != nil {
