@@ -207,6 +207,8 @@ private struct SettingsWindowChrome: NSViewRepresentable {
             guard let window else { return }
             window.titleVisibility = .hidden
             window.toolbarStyle = .unified
+            window.titlebarAppearsTransparent = true
+            window.titlebarSeparatorStyle = .none
             if window.toolbar == nil {
                 let toolbar = NSToolbar(identifier: "GlintSettingsToolbar")
                 toolbar.showsBaselineSeparator = false
