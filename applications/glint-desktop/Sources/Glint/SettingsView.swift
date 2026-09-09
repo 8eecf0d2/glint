@@ -19,10 +19,13 @@ struct SettingsView: View {
             Section {
                 LabeledContent("Accessibility") {
                     if model.accessibilityGranted {
-                        Circle()
-                            .fill(Color.green)
-                            .frame(width: 8, height: 8)
-                            .accessibilityLabel("Accessibility access granted")
+                        HStack(spacing: 6) {
+                            Circle()
+                                .fill(Color.green)
+                                .frame(width: 8, height: 8)
+                                .accessibilityHidden(true)
+                            Text("Granted")
+                        }
                     } else {
                         Button("Request access") { model.requestAccessibility() }
                     }
