@@ -20,25 +20,28 @@ type WindowState = WindowShape & {
 type Beat = {
   column: number;
   split?: number;
+  exchangeWith?: number;
   inset?: number;
   stagger: number;
   duration: number;
   rest: number;
 };
 
-// Local adjustments preserve the other windows and return to the opening layout.
-// A short follow-up occasionally punctuates the longer, quiet holds.
+// Short, varied phrases: paired snaps, individual resizes and occasional
+// cross-screen exchanges. At least two windows stay anchored in every beat.
 const beats: Beat[] = [
-  { column: 0, split: 0.5, stagger: 0.14, duration: 0.42, rest: 4.4 },
-  { column: 2, inset: 0.08, stagger: 0, duration: 0.38, rest: 0.9 },
-  { column: 2, inset: 0, stagger: 0, duration: 0.4, rest: 5.2 },
-  { column: 1, split: 0.5, stagger: 0, duration: 0.44, rest: 3.6 },
-  { column: 2, split: 0.5, stagger: 0.18, duration: 0.42, rest: 5.6 },
-  { column: 0, inset: 0.06, stagger: 0, duration: 0.36, rest: 1.1 },
-  { column: 0, inset: 0, stagger: 0, duration: 0.4, rest: 4.8 },
-  { column: 0, split: 1 / 3, stagger: 0, duration: 0.44, rest: 3.8 },
-  { column: 1, split: 2 / 3, stagger: 0.16, duration: 0.42, rest: 4.6 },
-  { column: 2, split: 1 / 3, stagger: 0, duration: 0.4, rest: 5.4 },
+  { column: 0, split: 0.5, stagger: 0.12, duration: 0.42, rest: 0.85 },
+  { column: 1, split: 0.5, stagger: 0.1, duration: 0.4, rest: 0.65 },
+  { column: 2, inset: 0.2, stagger: 0, duration: 0.4, rest: 0.55 },
+  { column: 2, inset: 0, stagger: 0, duration: 0.38, rest: 1.2 },
+  { column: 0, exchangeWith: 2, stagger: 0.12, duration: 0.52, rest: 1.4 },
+  { column: 2, split: 0.5, stagger: 0.14, duration: 0.42, rest: 0.75 },
+  { column: 0, inset: 0.16, stagger: 0, duration: 0.38, rest: 0.5 },
+  { column: 0, inset: 0, stagger: 0, duration: 0.4, rest: 0.9 },
+  { column: 0, split: 1 / 3, stagger: 0.1, duration: 0.44, rest: 0.7 },
+  { column: 1, split: 2 / 3, stagger: 0.12, duration: 0.42, rest: 1.3 },
+  { column: 0, exchangeWith: 2, stagger: 0.1, duration: 0.5, rest: 0.85 },
+  { column: 2, split: 1 / 3, stagger: 0.12, duration: 0.4, rest: 1.6 },
 ];
 
 function interpolateRect(from: WindowRect, to: WindowRect, progress: number): WindowRect {
@@ -90,7 +93,8 @@ function createWindow(): WindowShape {
 
 function setWindowRect(windowState: WindowShape, rect: WindowRect) {
   const titlebarY = rect.height / 2 - 0.36;
-  windowState.group.position.set(rect.x, rect.y, 0);
+  windowState.group.position.x = rect.x;
+  windowState.group.position.y = rect.y;
   // Position-only movement can reuse its geometry.
   const size = windowState.fill.userData;
   if (size.width !== rect.width || size.height !== rect.height) {
@@ -134,6 +138,15 @@ export function SpatialWindows() {
     renderer.domElement.tabIndex = -1;
     mount.appendChild(renderer.domElement);
 
+    // Scatter across the whole desktop, with varied sizes and natural overlap.
+    // Generate once so resize preserves the opening composition.
+    const scatter = Array.from({ length: 6 }, (_, index) => ({
+      x: 0.24 + (index % 3) * 0.25 + (Math.random() - 0.5) * 0.12,
+      y: 0.32 + Math.floor(index / 3) * 0.3 + (Math.random() - 0.5) * 0.16,
+      width: 0.29 + Math.random() * 0.17,
+      height: 0.32 + Math.random() * 0.2,
+    }));
+    let introPending = !motionPreference.matches;
     const windowStates: WindowState[] = Array.from({ length: 6 }, (_, index) => {
       const shape = createWindow();
       const column = Math.floor(index / 2);
@@ -142,7 +155,8 @@ export function SpatialWindows() {
       const slot = { x: column / 3, y: lower ? split : 0, width: 1 / 3, height: lower ? 1 - split : split };
       const rect = { x: 0, y: 0, width: 1, height: 1 };
       shape.materials.forEach((material) => { material.opacity = 1; });
-      // The opening is already calm: no floating, rotation or six-window entrance.
+      // Stable stacking keeps overlapping window controls with their own window.
+      shape.group.position.z = index * 0.03;
       scene.add(shape.group);
       return { ...shape, slot, inset: 0, currentRect: rect, fromRect: rect, targetRect: rect,
         startedAt: 0, duration: 0.4, moving: false };
@@ -168,7 +182,7 @@ export function SpatialWindows() {
     let frame = 0;
     let timer = 0;
     let beatIndex = 0;
-    let restAfterMovement = 4;
+    let restAfterMovement = 0.85;
     let disposed = false;
     const canAnimate = () => !disposed && !motionPreference.matches && !document.hidden;
     const render = () => renderer.render(scene, camera);
@@ -178,7 +192,14 @@ export function SpatialWindows() {
     };
     const settle = () => {
       windowStates.forEach((state) => {
-        state.currentRect = resolveRect(state);
+        const index = windowStates.indexOf(state);
+        const messy = scatter[index]!;
+        state.currentRect = introPending ? {
+          x: (compact ? (index % 2 === 0 ? -0.08 : 0.08) : messy.x - 0.5) * viewportWidth,
+          y: (compact ? (index % 2 === 0 ? 0.18 : -0.15) : 0.5 - messy.y) * viewportHeight,
+          width: viewportWidth * (compact ? 0.78 : messy.width),
+          height: viewportHeight * messy.height,
+        } : resolveRect(state);
         state.fromRect = { ...state.currentRect };
         state.targetRect = { ...state.currentRect };
         state.moving = false;
@@ -186,7 +207,7 @@ export function SpatialWindows() {
       });
     };
     const schedule = (seconds: number) => {
-      if (canAnimate()) timer = window.setTimeout(beginBeat, seconds * 1000);
+      if (canAnimate()) timer = window.setTimeout(introPending ? beginOpening : beginBeat, seconds * 1000);
     };
     const animate = (now: number) => {
       if (!canAnimate()) return;
@@ -208,16 +229,38 @@ export function SpatialWindows() {
       if (moving) frame = window.requestAnimationFrame(animate);
       else schedule(restAfterMovement);
     };
+    function beginOpening() {
+      if (!canAnimate()) return;
+      introPending = false;
+      const now = performance.now();
+      windowStates.forEach((state, index) => {
+        if (!state.group.visible) return;
+        state.fromRect = { ...state.currentRect };
+        state.targetRect = resolveRect(state);
+        state.startedAt = now + (Math.floor(index / 2) * 0.38 + (index % 2) * 0.14) * 1000;
+        state.duration = 0.58;
+        state.moving = true;
+      });
+      restAfterMovement = 0.7;
+      frame = window.requestAnimationFrame(animate);
+    }
+
     function beginBeat() {
       if (!canAnimate()) return;
       let beat = beats[beatIndex++ % beats.length]!;
-      while (compact && beat.column !== 0) beat = beats[beatIndex++ % beats.length]!;
+      while (compact && (beat.column !== 0 || beat.exchangeWith !== undefined)) beat = beats[beatIndex++ % beats.length]!;
       const firstIndex = beat.column * 2;
-      const indices = beat.split === undefined ? [firstIndex] : [firstIndex, firstIndex + 1];
+      const indices = beat.exchangeWith !== undefined
+        ? [firstIndex, firstIndex + 1, beat.exchangeWith * 2, beat.exchangeWith * 2 + 1]
+        : beat.split === undefined ? [firstIndex] : [firstIndex, firstIndex + 1];
+      const firstX = windowStates[firstIndex]!.slot.x;
+      const otherX = beat.exchangeWith === undefined ? firstX : windowStates[beat.exchangeWith * 2]!.slot.x;
       const now = performance.now();
       indices.forEach((index, offset) => {
         const state = windowStates[index]!;
-        if (beat.split !== undefined) {
+        if (beat.exchangeWith !== undefined) {
+          state.slot.x = offset < 2 ? otherX : firstX;
+        } else if (beat.split !== undefined) {
           state.slot.y = offset === 0 ? 0 : beat.split;
           state.slot.height = offset === 0 ? beat.split : 1 - beat.split;
         } else {
@@ -246,14 +289,16 @@ export function SpatialWindows() {
       windowStates.forEach((state, index) => { state.group.visible = !compact || index < 2; });
       settle();
       render();
-      schedule(3.2);
+      schedule(introPending ? 0.95 : 0.85);
     };
     const resume = () => {
       cancel();
+      // Reduced motion shows the settled desktop, without playing the entrance.
+      if (motionPreference.matches) introPending = false;
       // No catch-up burst after switching tabs or changing motion preferences.
       settle();
       render();
-      schedule(3.2);
+      schedule(introPending ? 0.95 : 0.85);
     };
     const observer = new ResizeObserver(resize);
     observer.observe(mount);

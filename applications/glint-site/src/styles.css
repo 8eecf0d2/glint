@@ -33,6 +33,21 @@ a { color: inherit; text-decoration: none; }
 }
 .spatial-background canvas { display: block; width: 100%; height: 100%; }
 
+.hero-blur {
+  position: fixed;
+  z-index: 0;
+  left: 50%;
+  top: calc(50svh - 32px);
+  transform: translate(-50%, -50%);
+  width: min(1120px, 125vw);
+  height: min(780px, 110svh);
+  pointer-events: none;
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+  -webkit-mask-image: radial-gradient(ellipse, #000 28%, rgb(0 0 0 / 85%) 48%, transparent 73%);
+  mask-image: radial-gradient(ellipse, #000 28%, rgb(0 0 0 / 85%) 48%, transparent 73%);
+}
+
 footer {
   display: flex;
   align-items: center;
@@ -49,19 +64,6 @@ footer {
   text-align: center;
 }
 
-/* A soft clearing follows the content, without a visible glass-panel edge. */
-.hero::before {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  inset: -100px -180px;
-  pointer-events: none;
-  background: radial-gradient(ellipse at center,
-    rgb(255 255 255 / 98%) 0%,
-    rgb(255 255 255 / 94%) 34%,
-    rgb(255 255 255 / 65%) 55%,
-    rgb(255 255 255 / 0%) 74%);
-}
 
 .hero-mark { display: block; width: clamp(70px, 9vw, 96px); height: clamp(70px, 9vw, 96px); margin: 0 auto 20px; }
 .eyebrow { margin: 0 0 15px; color: #747981; font-size: 12px; font-weight: 650; letter-spacing: 0.12em; text-transform: uppercase; }
@@ -94,19 +96,6 @@ footer a:hover { color: #171a1f; text-decoration-color: currentColor; }
 
 @media (max-height: 700px) {
   .page { grid-template-rows: 1fr 48px; }
-  /* A soft clearing follows the content, without a visible glass-panel edge. */
-.hero::before {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  inset: -100px -180px;
-  pointer-events: none;
-  background: radial-gradient(ellipse at center,
-    rgb(255 255 255 / 98%) 0%,
-    rgb(255 255 255 / 94%) 34%,
-    rgb(255 255 255 / 65%) 55%,
-    rgb(255 255 255 / 0%) 74%);
-}
 
 .hero-mark { width: 62px; height: 62px; margin-bottom: 14px; }
   .subtitle { margin-top: 16px; }
@@ -116,19 +105,6 @@ footer a:hover { color: #171a1f; text-decoration-color: currentColor; }
 @media (max-width: 620px) {
   .page { width: min(100% - 28px, 1180px); grid-template-rows: 1fr 48px; }
   .hero { padding: 16px 0; }
-  /* A soft clearing follows the content, without a visible glass-panel edge. */
-.hero::before {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  inset: -100px -180px;
-  pointer-events: none;
-  background: radial-gradient(ellipse at center,
-    rgb(255 255 255 / 98%) 0%,
-    rgb(255 255 255 / 94%) 34%,
-    rgb(255 255 255 / 65%) 55%,
-    rgb(255 255 255 / 0%) 74%);
-}
 
 .hero-mark { width: 64px; height: 64px; margin-bottom: 14px; }
   h1 { font-size: clamp(38px, 12vw, 56px); }

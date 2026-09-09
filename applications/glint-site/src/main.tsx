@@ -15,6 +15,7 @@ function App() {
       <Suspense fallback={null}>
         <SpatialWindows />
       </Suspense>
+      <div className="hero-blur" aria-hidden="true" />
       <section className="hero" aria-labelledby="hero-title">
         <img className="hero-mark" src={glintMark} alt="" />
         <p className="eyebrow">Native window control for macOS</p>
