@@ -67,7 +67,7 @@ struct SettingsView: View {
         // Reclaim the grouped form's extra space below the empty toolbar.
         .padding(.top, -24)
         .navigationTitle("")
-        .toolbarBackground(.hidden, for: .windowToolbar)
+        .toolbarBackground(.automatic, for: .windowToolbar)
         .frame(width: 620, height: 720)
         .background(SettingsWindowChrome())
         .onAppear { model.refreshSystemState() }
@@ -204,7 +204,7 @@ private struct ShortcutRecorderButton: View {
     }
 }
 
-// Extend the background through native window chrome without a toolbar divider.
+// Keep native toolbar material over scrolling content, without a title or divider.
 private struct SettingsWindowChrome: NSViewRepresentable {
     func makeNSView(context: Context) -> ChromeView { ChromeView() }
     func updateNSView(_ nsView: ChromeView, context: Context) {}
@@ -232,7 +232,7 @@ private struct SettingsWindowChrome: NSViewRepresentable {
                 toolbar.showsBaselineSeparator = false
                 window.toolbar = toolbar
             }
-            window.titlebarAppearsTransparent = true
+            window.titlebarAppearsTransparent = false
             window.titlebarSeparatorStyle = .none
         }
 
