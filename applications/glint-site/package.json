@@ -8,8 +8,8 @@
     "dev": "vite",
     "typecheck": "tsc --noEmit",
     "build:worker:cloudflare": "npm run build",
-    "check:deployment": "wrangler deploy --dry-run --outdir .wrangler/dry-run",
-    "develop:worker": "wrangler dev --local --port 8787",
+    "check:deployment": "npm run build && wrangler deploy --dry-run --outdir .wrangler/dry-run",
+    "develop:worker": "npm run build && wrangler dev --local --port 8787",
     "deploy:worker": "wrangler deploy"
   },
   "dependencies": {

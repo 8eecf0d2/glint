@@ -36,4 +36,4 @@ Direct downloads first; a self-maintained Homebrew tap after installation valida
 
 Spectacle 1.2 is the MIT behavior reference; see [third-party notices](THIRD_PARTY_NOTICES.md). Glint's own publication license is a release decision.
 
-Release pipeline and publication gates: [release operations](docs/release.md). Installation and recovery: [install guide](docs/install.md).
+Single Nx affected pipeline and publication gates: [release operations](docs/release.md). Installation and recovery: [install guide](docs/install.md).

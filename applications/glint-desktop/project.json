@@ -2,7 +2,8 @@
   "name": "glint-desktop",
   "projectType": "application",
   "implicitDependencies": [
-    "glint-core"
+    "glint-core",
+    "glint-brand"
   ],
   "tags": [
     "scope:desktop",
@@ -12,9 +13,16 @@
     "build": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "swift build",
-        "cwd": "applications/glint-desktop"
-      }
+        "command": "node scripts/build-release.mjs"
+      },
+      "inputs": [
+        "production",
+        "^production",
+        "desktopRelease"
+      ],
+      "outputs": [
+        "{projectRoot}/dist"
+      ]
     },
     "package": {
       "executor": "nx:run-commands",
@@ -26,6 +34,18 @@
       "executor": "nx:run-commands",
       "options": {
         "command": "bash scripts/package-desktop.sh && open applications/glint-desktop/dist/Glint.app"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "swift test --package-path libraries/glint-core && node --test scripts/release-policy.test.mjs"
+      }
+    },
+    "deploy": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "node scripts/publish-release.mjs"
       }
     }
   }

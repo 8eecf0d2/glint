@@ -1,38 +1,37 @@
-# Release operations
+# Affected-project pipeline
 
-The owner will make `8eecf0d2/glint` public when ready. GitHub Releases in that repository host the ZIP, checksums, update feed and notices. The marketing site remains a separate production-only Cloudflare Worker at glint.broderickwilkinson.com. No Developer ID, notarization, Apple membership or Apple secrets are used. Ad-hoc signing verifies integrity; it is not Gatekeeper approval.
+Glint uses one top-level workflow, `.github/workflows/ci.yml`, adapted from the actual Tesse checkout's workflow and Nx configuration. It determines affected projects, runs their applicable checks/tests, builds outputs, then deploys affected applications after all checks/builds succeed. There is no separate release, site verification or manual site deployment workflow, and tags do not trigger builds. Glint has no backend.
 
-## Rehearse without publication
+## Events, affected range and runners
 
-The **Build and release Glint** workflow accepts a stable `X.Y.Z` through manual dispatch and retains its verified artifacts for 14 days. Manual runs never publish, even in a public repository. Pushes to the private review branch `codex/GLNT-16-release-pipeline` also rehearse as version `0.0.0`, never publishing. Commit/review the workflow and run it on GitHub to verify the hosted runner; local checks cannot prove a hosted run. The release job uses standard `macos-15` (Apple silicon), Node from `.nvmrc`, the npm lockfile and runner-provided Swift/Xcode. Runner images change: provenance records the actual tools; byte-identical output is expected only with the same source, inputs and toolchain, not across runner image updates.
+Like Tesse, the workflow runs on main pushes, pull requests, nightly full runs and manual dispatch with a `full` input. Full history and `nrwl/nx-set-shas@v5` supply NX_BASE/NX_HEAD: PRs compare with main; main pushes compare with the last successful CI run. Failed checks/deploys therefore remain in the next push's affected range. Manual `full=false` also resolves its base explicitly; nightly/full runs select all projects. A docs-only change outside release inputs has no app build/deploy.
 
-Local equivalent:
+Nx's `glint-desktop -> glint-core` relationship propagates core changes to the app. A shared `glint-brand` project affects both native and site consumers. Root toolchain/dependency/workflow inputs are named shared inputs; release scripts, cask/notices/license and packaged instructions affect the native app. The site has real test/typecheck targets, and native app testing includes the core tests and release-policy tests. No fake backend or lint tasks were added.
 
-```sh
-export GLINT_VERSION=0.1.0
-export GLINT_BUILD_NUMBER=1
-export GLINT_ARCHS=arm64
-export GLINT_DOWNLOAD_BASE_URL=https://github.com/8eecf0d2/glint/releases/download/v0.1.0
-export GLINT_UPDATE_FEED_URL=https://github.com/8eecf0d2/glint/releases/latest/download/latest.json
-npm run release:desktop
-bash scripts/verify-release.sh
-```
+Checks precede builds. Native projects run on standard GitHub-hosted `macos-15`; website and graph work use Ubuntu. Native build produces the release ZIP directly; extracted-package verification checks arm64, version/build/feed, notices/checksums, ad-hoc signature, SVG and all 18 shortcut defaults. Site build is followed by a production Wrangler dry run. Outputs are uploaded and deployment downloads those same bytes; deploy targets do not rebuild. Native caches remain disabled because runner/toolchain differences matter.
 
-Output: `applications/glint-desktop/dist/releases/<version>`. The ZIP contains the native app, compiled canonical icons, menu-bar resource bundle, Spectacle notices and provenance. Sidecars include a checksum list covering every payload, manifest, generated cask, install guide and release notes. If a product LICENSE exists, it is attached. Stable versions only: the existing update comparator does not implement prerelease ordering. CI uses `github.run_number` for the build number; retain this workflow's counter and increase it beyond previously shipped build numbers if migrating workflows.
+## Production gating
 
-`verify-release.sh` extracts to a temporary directory, verifies all checksums, signature, exact architectures, version/build/feed metadata, dynamic dependencies, cask syntax and manifest/archive agreement. The extracted executable's `--verify-package` path loads the packaged SVG with AppKit and exits before app activation. Packaged resource lookup never falls back to the checkout. This proves resource/loading behavior, not interactive window control or fresh-machine Gatekeeper acceptance.
+Production runs only on main for push, schedule or manual dispatch, after checks/builds succeed. PRs never deploy. Tesse's `PRODUCTION_DEPLOYS_PAUSED=true` switch is retained; Glint additionally requires `PRODUCTION_DEPLOYS_ENABLED=true` as an explicit initial opt-in. Neither variable has been enabled/changed by this work. Enabling production, merging and initial publication still require user authorization. Once enabled, affected site changes deploy the site and affected native changes publish the app, subject to version/license checks.
 
-Release tags build arm64 only. Local universal cross-compilation remains available with `GLINT_ARCHS="arm64 x86_64"`; a successful Intel build does not establish native Intel acceptance. macOS 14 is the compilation floor, still requiring the clean-machine matrix.
+Both outputs use GitHub environment `production`. Site deployment uses `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` for the sole Worker at glint.broderickwilkinson.com; no staging. Secret names are confirmed, values/credential validity are not. App publication uses job-scoped `GITHUB_TOKEN` contents write permission. The owner must make the repository public before downloadable releases can publish. No Developer ID, notarization, paid Apple membership or Apple secrets are used; technical ad-hoc signing is retained.
 
-## Publication, only after authorization
+After merging and explicitly authorizing/enabling production, use a full main run for the first deployment so earlier non-deploying successful checks cannot hide pending outputs. A failed main deploy fails the workflow, keeping that change in the next affected range. Matrix apps deploy independently after all builds pass; partial deployment is retried using that same baseline.
 
-1. Resolve GLNT-21: choose Glint's product license/distribution terms and confirm bundle identity (`dev.8eecf0d2.glint`). Review dependency license evidence. Do not infer a license from Spectacle's MIT notice.
-2. Finish GLNT-4/15/20: daily-use acceptance and downloaded installation/replacement/rollback/uninstall checks on each supported macOS/architecture. Record actual browser quarantine and Accessibility/login behavior.
-3. Review and commit the root-checkout changes, make them available on main, and complete a hosted manual rehearsal. Local setup does not mean the remote workflow has run.
-4. After explicit publication authorization, the owner changes repository visibility and pushes an annotated stable version tag (`vX.Y.Z`) at the accepted commit. A tag builds and verifies first; publication runs only for a public repository. Private tag runs produce artifacts only. Do not reuse/move published tags.
-5. The publish job uses only `GITHUB_TOKEN` with job-scoped `contents: write`. `gh release create --verify-tag` attaches verified assets and makes the release latest. Existing releases are not overwritten. If an upload fails, inspect any partial draft before retrying; do not delete or overwrite published assets. Releasing an older tag would make its feed latest: tag versions in increasing order.
-6. Verify anonymous downloads, `SHA256SUMS`, and the stable `/releases/latest/download/latest.json` redirect. The versioned archive URL must stay immutable. An old installed version must discover the new version. The website links to the Releases listing already; no visual changes are needed to enable that path once public.
-7. Publish the generated cask to a separately chosen self-maintained tap after the real download works. See `distribution/homebrew/README.md`. Tap repository/name and real brew acceptance remain pending.
-8. Only after deployment authorization, run **Deploy marketing site** from main. It uses GitHub environment `production` and `CLOUDFLARE_ACCOUNT_ID` / `CLOUDFLARE_API_TOKEN`. Names were confirmed previously; values and credential validity remain unverified. No staging or automatic release-to-site deploy is configured.
+## Explicit native versions
 
-References: [GitHub hosted runners](https://docs.github.com/en/actions/reference/runners/github-hosted-runners), [GitHub CLI release creation](https://cli.github.com/manual/gh_release_create).
+The user chose intentional version bumps, never automatic versioning. Edit `applications/glint-desktop/release.json` before a new app publication: stable `version` and monotonically increasing `buildNumber`. The checked `0.0.0` is a rehearsal placeholder and publication refuses it; choose the actual first version deliberately. There is no CI run-number version or automatic bump.
+
+Packaging records a digest of the release input files in BUILD-PROVENANCE.txt. For an existing version, publication compares that digest and build number: identical published inputs are a no-op (safe retry/nightly full run); changed inputs, different build numbers or partial drafts fail and never overwrite assets. For a new version both version and build number must exceed the latest published release. Public-release creation attaches verified assets and creates `v<version>` at the exact built commit. A preexisting tag pointing elsewhere is rejected. Do not move tags or overwrite downloads.
+
+The digest covers native/core sources, shared brand, root lockfile/toolchain/Nx/workflows, release scripts, cask, license/notices and packaged release/install notes. Unrelated site sources and general docs are excluded, so a full run after a site-only change does not republish the app. Shared dependency or release-input changes intentionally require a native version bump if that version is already public. Runner-generated bytes can differ on later runs; existing releases retain their original immutable bytes.
+
+Versioned ZIP URLs are `https://github.com/8eecf0d2/glint/releases/download/v<version>/Glint-<version>-macos.zip`. Every app embeds the stable feed `https://github.com/8eecf0d2/glint/releases/latest/download/latest.json`. App publication makes the new version latest; manual update discovery does not install anything.
+
+## Safe rehearsal and remaining gates
+
+PR checks/builds exercise the same Nx targets and upload artifacts, with no credentials or deployment. Locally use `npx nx run glint-desktop:build`, then source `node scripts/release-metadata.mjs --env` output as environment variables before `bash scripts/verify-release.sh`. `npm run check:site:deployment` builds and dry-runs the site without publishing. Manual dispatch from a non-main branch remains non-deploying.
+
+Local universal cross-compilation remains available through the low-level packaging script, but the pipeline publishes arm64 only. macOS 14 is the compilation floor, not a completed OS acceptance matrix. Package loading smoke checks do not establish clean-machine Gatekeeper or interactive window movement.
+
+Before production: review/merge the PR, choose the first app version and product license/final identity, replace preparation release notes with accepted terms and tested OS coverage, finish downloaded clean-machine install/update/rollback/uninstall and daily-use acceptance, authorize public visibility and initial deployment. The publish script fails without a LICENSE or finalized notes. See INSTALL.md in release outputs and `docs/install.md` in source. A self-maintained tap remains a separate publication/acceptance gate; no tap repository/name is invented. GLNT-23 icons remain approved.

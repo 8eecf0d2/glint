@@ -1,25 +1,154 @@
 name: CI
+
+# Tesse's affected -> checks -> deploy architecture, with an explicit build
+# stage so deployment consumes the exact verified outputs instead of rebuilding.
 on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    - cron: '0 16 * * *'
+  workflow_dispatch:
+    inputs:
+      full:
+        description: Check, build and (when enabled on main) deploy every project
+        type: boolean
+        default: true
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: read
+  actions: read
+
+env:
+  NX_DAEMON: 'false'
+  NX_TUI: 'false'
+
 jobs:
-  verify:
-    runs-on: macos-15
-    env:
-      NX_DAEMON: "false"
-      NX_TUI: "false"
+  affected:
+    runs-on: ubuntu-latest
+    outputs:
+      projects: ${{ steps.list.outputs.projects }}
+      builds: ${{ steps.list.outputs.builds }}
+      deploys: ${{ steps.list.outputs.deploys }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
         with:
-          node-version-file: .nvmrc
-          cache: npm
-      - run: npm ci
-      - run: npm run typecheck
-      - run: npm run build
-      - run: npm test
-      - run: npm run package:desktop
-      - run: codesign --verify --strict applications/glint-desktop/dist/Glint.app
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
+      - name: Find the last successful main base and current head
+        id: shas
+        uses: nrwl/nx-set-shas@v5
+        with:
+          main-branch-name: main
+          workflow-id: ci.yml
+      - name: List affected projects
+        id: list
+        env:
+          FULL: ${{ steps.shas.outputs.noPreviousBuild == 'true' || github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.full) }}
+        run: |
+          args=()
+          if [ "$FULL" != 'true' ]; then
+            args=(--affected --base="$NX_BASE" --head="$NX_HEAD")
+          fi
+          projects=$(npx nx show projects "${args[@]}" --json)
+          builds=$(npx nx show projects "${args[@]}" --with-target build --json)
+          deploys=$(npx nx show projects "${args[@]}" --with-target deploy --json)
+          echo "projects=$projects" >> "$GITHUB_OUTPUT"
+          echo "builds=$builds" >> "$GITHUB_OUTPUT"
+          echo "deploys=$deploys" >> "$GITHUB_OUTPUT"
+          echo "Checks: $projects; builds: $builds; deploys: $deploys"
+
+  check:
+    needs: affected
+    if: needs.affected.outputs.projects != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        project: ${{ fromJSON(needs.affected.outputs.projects) }}
+    name: check (${{ matrix.project }})
+    runs-on: ${{ contains(fromJSON('["glint-desktop","glint-core"]'), matrix.project) && 'macos-15' || 'ubuntu-latest' }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup
+      - name: Run applicable checks and critical tests
+        env:
+          PROJECT: ${{ matrix.project }}
+        run: npx nx run-many --projects="$PROJECT" --targets=typecheck,test
+
+  build:
+    needs: [affected, check]
+    if: needs.affected.outputs.builds != '[]'
+    strategy:
+      fail-fast: false
+      matrix:
+        project: ${{ fromJSON(needs.affected.outputs.builds) }}
+    name: build (${{ matrix.project }})
+    runs-on: ${{ contains(fromJSON('["glint-desktop","glint-core"]'), matrix.project) && 'macos-15' || 'ubuntu-latest' }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup
+      - name: Build affected project
+        env:
+          PROJECT: ${{ matrix.project }}
+        run: npx nx run "$PROJECT:build"
+      - name: Verify native package
+        if: matrix.project == 'glint-desktop'
+        run: node scripts/release-metadata.mjs --env >> "$GITHUB_ENV"
+      - if: matrix.project == 'glint-desktop'
+        run: bash scripts/verify-release.sh
+      - name: Validate production site without deployment
+        if: matrix.project == 'glint-site'
+        run: npx nx run glint-site:check-deployment
+      - uses: actions/upload-artifact@v4
+        if: contains(fromJSON(needs.affected.outputs.deploys), matrix.project)
+        with:
+          name: output-${{ matrix.project }}
+          path: applications/${{ matrix.project }}/dist
+          if-no-files-found: error
+          retention-days: 14
+
+  deploy:
+    needs: [affected, check, build]
+    # Explicit opt-in keeps setup/rehearsals inert. Tesse's pause switch and
+    # main/event restrictions still apply after the owner enables production.
+    if: >-
+      vars.PRODUCTION_DEPLOYS_ENABLED == 'true' &&
+      vars.PRODUCTION_DEPLOYS_PAUSED != 'true' &&
+      needs.affected.outputs.deploys != '[]' &&
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule')
+    strategy:
+      fail-fast: false
+      matrix:
+        project: ${{ fromJSON(needs.affected.outputs.deploys) }}
+    name: deploy (${{ matrix.project }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup
+      - uses: actions/download-artifact@v4
+        with:
+          name: output-${{ matrix.project }}
+          path: applications/${{ matrix.project }}/dist
+      - name: Deploy verified site assets
+        if: matrix.project == 'glint-site'
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npx nx run glint-site:deploy
+      - name: Publish verified native release
+        if: matrix.project == 'glint-desktop'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: npx nx run glint-desktop:deploy

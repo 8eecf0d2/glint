@@ -12,21 +12,12 @@ This neighbor-aware choreography is an illustrative marketing behavior, not an a
 
 Run `node --test applications/glint-site/tests/windowLayout.test.mjs` from the repository root with Node 22.18+ to verify the layout and relocation invariants.
 
-## Cloudflare deployment
+## Production deployment
 
-Production is configured for **glint.broderickwilkinson.com**, verified against the personal site's `broderickwilkinson/wrangler.jsonc`. The site uses Cloudflare Workers Static Assets to serve only Vite's `dist` directory; there is no server entry point or native app upload. Wrangler builds fresh assets before preview, validation and deployment. There is exactly one deployment, using Wrangler 4 for static asset support.
+The single `.github/workflows/ci.yml` follows Tesse's Nx affected architecture: affected checks/tests, builds, then main-only deployment. Site changes select `glint-site`; shared brand and root dependency changes propagate through Nx. PRs build and dry-run only. The production job downloads the verified Vite artifact and calls `glint-site:deploy` without rebuilding.
 
-From the repository root:
+The sole Cloudflare Worker serves **glint.broderickwilkinson.com**. No staging, workers.dev or preview URL is enabled. GitHub environment `production` holds `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN`; credential validity is unverified. Initial deployment requires explicit authorization and `PRODUCTION_DEPLOYS_ENABLED=true`, with `PRODUCTION_DEPLOYS_PAUSED` not true. No deployment occurred during setup.
 
-- `npm run dev:site` — existing Vite development server.
-- `npm run preview:site:worker` — local Wrangler preview on port 8787.
-- `npm run check:site:deployment` — production build and Wrangler dry run; does not upload or change DNS.
-- `npm run deploy:site` — publishes `glint-site-production` and attaches the configured custom domain.
+`npm run check:site:deployment` builds and dry-runs locally. `npm run preview:site:worker` builds then starts local Wrangler. The Nx `check-deployment` and `deploy` targets consume an already built `dist`; use `npm run build` first outside the pipeline. There is no separate manual deploy workflow. See [release operations](../../docs/release.md) for main/full-run gating and the app's independent explicit-version policy.
 
-Authenticate locally with `npx wrangler login`, or supply `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN`. Use the account hosting the active `broderickwilkinson.com` zone. The token needs permission to publish Workers and manage the custom domain's route/zone. Do not copy the personal site's unrelated Stripe secrets.
-
-The **Deploy marketing site** GitHub Actions workflow is manual (`workflow_dispatch`), has no environment selector, and deploys production only from `main`. Configure `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` in the GitHub Environment named exactly `production`. The deployment job declares `environment: production` to access those environment-scoped secrets. Optional production environment reviewers can protect manual releases. The separate **Verify marketing deployment** workflow checks type safety, layout invariants and a build/dry run on relevant pull requests and main pushes, without Cloudflare credentials or deployment.
-
-No deployment, secret installation or DNS mutation was performed as part of this setup. Running the production deployment later creates/updates the custom-domain DNS binding; resolve any existing conflicting record before that first release. Production disables workers.dev and preview URLs. The source repository remains private, so its GitHub Releases download link is accessible only to authorized repository users until the owner makes this repository public at release readiness. Public downloads will remain in this repository’s GitHub Releases.
-
-References: [Cloudflare Static Assets](https://developers.cloudflare.com/workers/static-assets/get-started/) and [Custom Domains](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/).
+The existing download link points to this repository's GitHub Releases and becomes public when the owner changes repository visibility at readiness.
