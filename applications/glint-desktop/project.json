@@ -33,7 +33,7 @@
     "dev": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "bash scripts/package-desktop.sh && open applications/glint-desktop/dist/Glint.app"
+        "command": "bash scripts/dev-desktop.sh"
       }
     },
     "test": {

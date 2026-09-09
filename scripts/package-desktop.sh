@@ -5,7 +5,7 @@ project="applications/glint-desktop"
 version="${GLINT_VERSION:-0.0.0}"
 build_number="${GLINT_BUILD_NUMBER:-1}"
 architectures="${GLINT_ARCHS:-$(uname -m)}"
-app="$project/dist/Glint.app"
+app="${GLINT_APP_OUTPUT:-$project/dist/Glint.app}"
 # This path is generated output owned by this script.
 rm -rf "$app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
@@ -47,5 +47,7 @@ if [ -n "${GLINT_PROVENANCE_FILE:-}" ]; then
   cp "$GLINT_PROVENANCE_FILE" "$app/Contents/Resources/BUILD-PROVENANCE.txt"
 fi
 # Free ad-hoc signature: integrity for Apple silicon, no Developer ID or notarization.
-codesign --force --sign - "$app"
-printf 'Built %s (%s; ad-hoc signed)\n' "$app" "$architectures"
+signing_identity="${GLINT_SIGNING_IDENTITY:--}"
+codesign --force --sign "$signing_identity" --timestamp=none "$app"
+codesign --verify --deep --strict "$app"
+printf 'Built %s (%s; signature verified)\n' "$app" "$architectures"
