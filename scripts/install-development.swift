@@ -34,7 +34,7 @@ if files.fileExists(atPath: destination.path) {
 }
 let process = Process()
 process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
-process.arguments = [destination.path]
+process.arguments = [destination.path, "--args", "--settings"]
 try process.run()
 process.waitUntilExit()
 print("Development app: \(destination.path)")

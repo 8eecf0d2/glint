@@ -14,7 +14,7 @@ This is the supported build/install/reopen command for local testing. Do not run
 2. Reuse its fingerprint from `~/Library/Application Support/Glint/Signing/identity.sha1`. If an existing identity is missing or invalid, stop with recovery instructions instead of changing identity.
 3. Build and sign in a temporary staging directory. Validate the signature before touching the installed app.
 4. Ask running Glint copies to quit. Abort after 15 seconds if they remain running; do not force-kill or replace the running app.
-5. Install at `~/Applications/Glint.app` and reopen that exact copy. Read version/build metadata from `applications/glint-desktop/release.json`.
+5. Install at `~/Applications/Glint.app` and reopen that exact copy with Settings visible (`--settings`) for immediate visual review. Read version/build metadata from `applications/glint-desktop/release.json`.
 
 `npm run dev:desktop:setup` performs only the idempotent signing setup. It is normally unnecessary because the development command calls it automatically. Prerequisites are the repository's Node/npm toolchain, Swift/Xcode command-line tools and OpenSSL on PATH.
 

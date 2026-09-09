@@ -25,13 +25,27 @@ struct GlintApp: App {
         MenuBarExtra {
             GlintMenu(model: model)
         } label: {
-            Image(nsImage: BrandAssets.menuBarIcon)
-                .renderingMode(.template)
-                .accessibilityLabel("Glint")
+            GlintMenuBarLabel()
         }
         Settings {
             SettingsView(model: model)
         }
+    }
+}
+
+private struct GlintMenuBarLabel: View {
+    @Environment(\.openSettings) private var openSettings
+
+    var body: some View {
+        Image(nsImage: BrandAssets.menuBarIcon)
+            .renderingMode(.template)
+            .accessibilityLabel("Glint")
+            .task {
+                if CommandLine.arguments.contains("--settings") {
+                    openSettings()
+                    NSApp.activate(ignoringOtherApps: true)
+                }
+            }
     }
 }
 

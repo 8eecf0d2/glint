@@ -238,10 +238,13 @@ private struct SettingsWindowChrome: NSViewRepresentable {
             }
             window.titlebarAppearsTransparent = true
             window.titlebarSeparatorStyle = .none
-            if let content = window.contentView, topMaterial.superview !== content {
+            if let content = window.contentView, let frameView = content.superview,
+               topMaterial.superview !== frameView {
                 topMaterial.removeFromSuperview()
                 topMaterial.translatesAutoresizingMaskIntoConstraints = false
-                content.addSubview(topMaterial, positioned: .above, relativeTo: nil)
+                // SwiftUI owns the hosting view's children. Keep the material as a
+                // sibling above that compositor, below native window controls.
+                frameView.addSubview(topMaterial, positioned: .above, relativeTo: content)
                 NSLayoutConstraint.activate([
                     topMaterial.topAnchor.constraint(equalTo: content.topAnchor),
                     topMaterial.leadingAnchor.constraint(equalTo: content.leadingAnchor),
