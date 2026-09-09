@@ -204,7 +204,17 @@ private struct SettingsWindowChrome: NSViewRepresentable {
     final class ChromeView: NSView {
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
+            NotificationCenter.default.removeObserver(self)
             guard let window else { return }
+            NotificationCenter.default.addObserver(
+                self, selector: #selector(settingsDidOpen),
+                name: NSWindow.didBecomeKeyNotification, object: window
+            )
+            NotificationCenter.default.addObserver(
+                self, selector: #selector(settingsWillClose),
+                name: NSWindow.willCloseNotification, object: window
+            )
+            settingsDidOpen()
             window.titleVisibility = .hidden
             window.toolbarStyle = .unified
             window.titlebarAppearsTransparent = true
@@ -214,6 +224,16 @@ private struct SettingsWindowChrome: NSViewRepresentable {
                 toolbar.showsBaselineSeparator = false
                 window.toolbar = toolbar
             }
+        }
+
+        @objc private func settingsDidOpen() {
+            if NSApp.activationPolicy() != .regular {
+                NSApp.setActivationPolicy(.regular)
+            }
+        }
+
+        @objc private func settingsWillClose() {
+            NSApp.setActivationPolicy(.accessory)
         }
     }
 }
