@@ -63,7 +63,9 @@ struct SettingsView: View {
 
         }
         .formStyle(.grouped)
-        .contentMargins(.top, 8, for: .scrollContent)
+        .contentMargins(.top, 0, for: .scrollContent)
+        // Reclaim the grouped form's extra space below the empty toolbar.
+        .padding(.top, -24)
         .navigationTitle("")
         .toolbarBackground(.hidden, for: .windowToolbar)
         .frame(width: 620, height: 720)
