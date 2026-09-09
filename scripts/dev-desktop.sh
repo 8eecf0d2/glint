@@ -2,15 +2,8 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 identity_file="$HOME/Library/Application Support/Glint/Signing/identity.sha1"
-if [ ! -f "$identity_file" ]; then
-  echo "Set up a persistent local signing identity; see applications/glint-desktop/README.md." >&2
-  exit 1
-fi
+bash scripts/setup-development-signing.sh
 export GLINT_SIGNING_IDENTITY="$(cat "$identity_file")"
-if ! security find-identity -v -p codesigning | grep -Fq "$GLINT_SIGNING_IDENTITY"; then
-  echo "The configured Glint development identity is unavailable in Keychain." >&2
-  exit 1
-fi
 mkdir -p applications/glint-desktop/dist
 staging="$(mktemp -d "$PWD/applications/glint-desktop/dist/dev.XXXXXX")"
 trap 'rm -rf "$staging"' EXIT

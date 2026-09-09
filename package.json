@@ -22,7 +22,8 @@
     "graph": "nx graph",
     "check:site:deployment": "nx run glint-site:check-deployment",
     "preview:site:worker": "nx run glint-site:preview-worker",
-    "deploy:site": "nx run glint-site:deploy"
+    "deploy:site": "nx run glint-site:deploy",
+    "dev:desktop:setup": "bash scripts/setup-development-signing.sh"
   },
   "devDependencies": {
     "nx": "^22.2.4",

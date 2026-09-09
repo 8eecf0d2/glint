@@ -2,8 +2,17 @@ import AppKit
 import Foundation
 
 // Install only after a successful staged build and a graceful app shutdown.
+guard CommandLine.arguments.count == 3 else {
+    fputs("Usage: install-development.swift staged-app destination-app\n", stderr)
+    exit(1)
+}
 let source = URL(fileURLWithPath: CommandLine.arguments[1])
 let destination = URL(fileURLWithPath: CommandLine.arguments[2])
+guard source.standardizedFileURL != destination.standardizedFileURL,
+      Bundle(url: source)?.bundleIdentifier == "dev.8eecf0d2.glint" else {
+    fputs("Expected a separate, staged Glint app bundle.\n", stderr)
+    exit(1)
+}
 let running = NSRunningApplication.runningApplications(withBundleIdentifier: "dev.8eecf0d2.glint")
 for app in running { app.terminate() }
 let deadline = Date().addingTimeInterval(15)
@@ -28,4 +37,5 @@ process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
 process.arguments = [destination.path]
 try process.run()
 process.waitUntilExit()
+print("Development app: \(destination.path)")
 exit(process.terminationStatus)

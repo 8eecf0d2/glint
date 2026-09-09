@@ -6,3 +6,5 @@ Read the Tesse [architecture and scope](https://app.tesse.dev/workspaces/01a0833
 Keep the macOS app native Swift/SwiftUI/AppKit; Nx coordinates builds, not the runtime.
 Preserve the captured shortcut defaults. Distinguish verified Spectacle behavior, proposed Glint behavior, and implemented behavior.
 The repository is public and Glint is Apache-2.0 licensed. The authorized main pipeline deploys affected production outputs and publishes explicitly versioned GitHub Releases. Never overwrite published versions. No Developer ID signing or notarization.
+
+For local desktop iterations, always use `npm run dev:desktop`. It reuses persistent free local signing, stages the build, quits Glint, installs to `~/Applications/Glint.app` and reopens it. Do not rebuild a running bundle in place or open `dist/Glint.app` for daily testing. Never rotate signing keys or reset Accessibility during routine rebuilds; the user grants access once after initial setup. See `docs/development.md`.
