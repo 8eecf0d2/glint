@@ -192,8 +192,7 @@ footer a:hover { color: #171a1f; text-decoration-color: currentColor; }
   .hero-blur { opacity: 1; transition: none; }
 }
 
-#hero-title, .download { position: relative; }
-.surface-metal { position: absolute; inset: 0; display: block; pointer-events: none; opacity: 0.28; }
-.surface-metal canvas { display: block; }
-.surface-metal-pill { overflow: hidden; border-radius: inherit; opacity: 0.12; }
+.download { position: relative; }
+.button-mesh { position: absolute; inset: 0; pointer-events: none; overflow: hidden; border-radius: inherit; opacity: 0.85; }
+.button-mesh canvas { display: block; }
 .download-label, .download > svg { position: relative; z-index: 1; }
