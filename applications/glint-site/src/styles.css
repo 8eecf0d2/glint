@@ -119,17 +119,13 @@ footer a:hover { color: #171a1f; text-decoration-color: currentColor; }
 
 /* The renderer cues the page, so a cold-load chunk cannot outrun the intro. */
 .hero-mark { position: relative; opacity: 0; transform: translateY(100px) scale(0.9); }
-.mark-art { position: absolute; inset: 0; }
-.mark-art svg { display: block; width: 100%; height: 100%; }
-.mark-reflection { opacity: 0; }
-.logo-visible .mark-reflection { animation: edge-light 2.52s 0.17s ease-in-out both; }
-.mark-star { transform-box: fill-box; transform-origin: center; }
+.mark-art, .mark-metal { position: absolute; inset: 0; width: 100%; height: 100%; }
+.mark-metal { opacity: 0; pointer-events: none; }
+.mark-metal canvas { display: block; }
+.logo-visible .mark-metal { animation: metal-reveal 2.6s 0.08s ease-in-out both; }
 .logo-visible .hero-mark { animation: mark-arrive 0.32s linear both; }
 .logo-docked .hero-mark { animation: mark-dock 0.65s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .logo-docked .mark-art { animation: mark-float 5s 0.65s ease-in-out infinite; }
-.logo-visible .mark-star { animation: star-breathe 1.18s 0.08s ease-in-out 2 both; }
-.logo-visible .mark-star:nth-child(2) { animation-delay: 0.19s; }
-.logo-visible .mark-star:nth-child(3) { animation-delay: 0.27s; }
 .hero h1, .subtitle, .actions, footer {
   opacity: 0;
   visibility: hidden;
@@ -153,11 +149,10 @@ footer a:hover { color: #171a1f; text-decoration-color: currentColor; }
   from { opacity: 1; transform: translateY(100px) scale(1.06); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
-@keyframes edge-light {
+@keyframes metal-reveal {
   0%, 100% { opacity: 0; }
   12%, 85% { opacity: 1; }
 }
-@keyframes star-breathe { 0%, 100% { transform: scale(1); } 40% { transform: scale(1.085); } }
 @keyframes mark-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
 @keyframes content-arrive {
   from { opacity: 0; visibility: visible; transform: translateY(16px); }
@@ -165,6 +160,6 @@ footer a:hover { color: #171a1f; text-decoration-color: currentColor; }
 }
 @media (prefers-reduced-motion: reduce) {
   .hero-mark, .hero h1, .subtitle, .actions, footer { opacity: 1; visibility: visible; transform: none; animation: none !important; }
-  .mark-art, .mark-star, .mark-reflection { animation: none !important; }
+  .mark-art, .mark-metal { animation: none !important; }
   .hero-blur { opacity: 1; transition: none; }
 }
