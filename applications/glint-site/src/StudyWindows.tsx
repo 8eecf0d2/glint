@@ -116,7 +116,7 @@ export function StudyWindows({ study }: { study: number }) {
     const random = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
     const looseLayout = initialLooseLayout(random);
     let localBand = 0;
-    const initialSlots = [0, 1, 5, 8, 10];
+    const initialSlots = [0, 1, 2, 4, 5];
     let clock = 0;
     let lastTime = 0;
     let nextBeatAt = Infinity;
@@ -543,7 +543,7 @@ export function StudyWindows({ study }: { study: number }) {
 
     function beginRelocation() {
       const owners = occupied();
-      const capacity = compact ? 2 : study === 13 ? 12 : 6;
+      const capacity = compact ? 2 : 6;
       const vacancies = Array.from({ length: capacity }, (_, i) => i)
         .filter((slot) => !owners.some((owner) => owner.slot === slot));
       if (!vacancies.length) return false;
@@ -571,7 +571,7 @@ export function StudyWindows({ study }: { study: number }) {
     function beginLifecycle() {
       const eligible = windowStates.filter((state) => !compact || state.id < 2);
       const active = visibleStates();
-      const capacity = compact ? 2 : study === 13 ? 12 : 6;
+      const capacity = compact ? 2 : 6;
       const vacancies = Array.from({ length: capacity }, (_, i) => i)
         .filter((slot) => !active.some((state) => state.slot === slot));
       const closed = eligible.filter((state) => !state.active);
@@ -655,9 +655,8 @@ export function StudyWindows({ study }: { study: number }) {
       pointer.y = (0.5 - (event.clientY - bounds.top) / bounds.height) * viewportHeight;
       pointer.active = true;
       if (study === 13 && !compact) {
-        const zone = pointer.x < 0 ? 0 : 1;
         const y = (viewportHeight / 2 - 0.22 - pointer.y) / (viewportHeight - 0.22 + 5 * viewportHeight / viewportPixelHeight);
-        const cuts = looseLayout.rows[zone]!;
+        const cuts = looseLayout.rows;
         if (Math.min(Math.abs(y - cuts[0]!), Math.abs(y - cuts[1]!)) > 0.02) {
           localBand = y < cuts[0]! ? 0 : y < cuts[1]! ? 1 : 2;
         }

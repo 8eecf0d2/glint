@@ -58,3 +58,7 @@ Latest feedback supersedes the zero-gap/square-corner treatment: 13 now has a co
 ## Five windows, uninterrupted cursor control
 
 Study 13 now has five windows. Its relocations use one transition that interpolates both position and size toward the live destination, eliminating the fit/travel/grow sequence. Pointer input updates the shared layout every frame, including during relocation; settled windows update immediately, and moving windows sample their current destination bounds before interpolation. This removes the explicit movement/pending-work gate that intermittently disconnected cursor resizing. Canvas height is cached on resize rather than repeatedly read during geometry updates. Earlier studies retain their original transition behavior.
+
+## Density correction
+
+Reducing the count without reducing twelve reservations left seven holes. Study 13 now uses six adjoining regions for five windows, leaving exactly one vacant destination. Each of three rows keeps an independent continuous width split, with two shared height boundaries. The 10px gutters, 12px radius, floating entrance, full-size arrivals and uninterrupted cursor control remain. Tests now enforce six regions and one vacancy.
