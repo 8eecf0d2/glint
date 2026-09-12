@@ -17,7 +17,7 @@ export const initialLayout = (): Layout => ({ rows: 0.4, top: 0.5, bottom: 0.5, 
 
 // Shared partitions guarantee clear settled rectangles, including when several
 // boundaries change together. Minimum sizes propagate up to their parents.
-export function regions(layout: Layout, compact = false, minWidth = 0.12, minHeight = 0.2): LayoutRect[] {
+export function regions(layout: Layout, compact = false, minWidth = 0.12, minHeight = 0.2, quantize = true): LayoutRect[] {
   const result: LayoutRect[] = [];
   const minimum = (node: Region, axis: "x" | "y"): number => {
     if ("slot" in node) return axis === "x" ? minWidth : minHeight;
@@ -38,7 +38,7 @@ export function regions(layout: Layout, compact = false, minWidth = 0.12, minHei
     const lastStep = Math.floor((upper * span + 1e-9) / step);
     const requestedStep = Math.round(span * layout[node.divider] / step);
     const snapped = Math.max(firstStep, Math.min(lastStep, requestedStep)) * step;
-    const ratio = firstStep <= lastStep ? snapped / span
+    const ratio = quantize && firstStep <= lastStep ? snapped / span
       : Math.max(lower, Math.min(upper, layout[node.divider]));
     const [first, second] = node.children;
     if (horizontal) {

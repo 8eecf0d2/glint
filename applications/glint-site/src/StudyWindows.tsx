@@ -6,6 +6,7 @@ import {
 import type { Material, Object3D } from "three";
 import { initialLayout, planRelocation, regions } from "./windowLayout";
 import type { Divider, LayoutRect, Placement } from "./windowLayout";
+import { createEdgeSheen } from "./edgeSheen";
 
 type WindowRect = LayoutRect;
 type WindowShape = { group: Group; fill: Mesh; lights: Mesh[]; materials: Material[] };
@@ -98,6 +99,7 @@ export function StudyWindows({ study }: { study: number }) {
     const mount = mountRef.current;
     if (!mount) return;
     const motionPreference = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const continuous = study === 11 || study === 13;
     const pointerPreference = window.matchMedia("(hover: hover) and (pointer: fine)");
     const pointer = { x: 0, y: 0, active: false, hovered: -1, changedAt: 0 };
     const wakeAt = Array(6).fill(-10000) as number[];
@@ -137,7 +139,7 @@ export function StudyWindows({ study }: { study: number }) {
       width: 0.29 + random() * 0.17,
       height: 0.32 + random() * 0.2,
     }));
-    let introPending = !motionPreference.matches;
+    let introPending = !motionPreference.matches && !continuous;
     const layout = initialLayout();
     const windowStates: WindowState[] = Array.from({ length: 6 }, (_, index) => {
       const shape = createWindow();
@@ -151,7 +153,7 @@ export function StudyWindows({ study }: { study: number }) {
     });
     const visibleStates = () => windowStates.filter((state) => state.active && (!compact || state.id < 2));
     const occupied = (): Placement[] => visibleStates().map(({ id, slot }) => ({ id, slot }));
-    const cells = () => regions(layout, compact, Math.min(0.2, 1.1 / viewportWidth), 0.2);
+    const cells = () => regions(layout, compact, Math.min(0.2, 1.1 / viewportWidth), 0.2, !continuous);
     const resolveRect = (state: WindowState): WindowRect => {
       const slot = cells()[state.slot] ?? cells()[0]!;
       const outerInset = 0.22;
@@ -185,6 +187,13 @@ export function StudyWindows({ study }: { study: number }) {
       scene.add(line);
       return line;
     }) : [];
+    const sheens = study === 12 || study === 13 ? windowStates.map(() => {
+      const sheen = createEdgeSheen();
+      scene.add(sheen.mesh);
+      return sheen;
+    }) : [];
+    const sheenStrength = Array(6).fill(0) as number[];
+    let renderAt = performance.now();
     const echoHistory: { time: number; rect: WindowRect }[][] = windowStates.map(() => []);
     const echoes = study === 3 ? windowStates.map(() => [0, 1].map(() => {
       const echo = createWindow();
@@ -213,6 +222,9 @@ export function StudyWindows({ study }: { study: number }) {
       line.position.y = rect.y;
     };
     const render = () => {
+      const renderNow = performance.now();
+      const response = 1 - Math.exp(-Math.min(0.05, (renderNow - renderAt) / 1000) * 12);
+      renderAt = renderNow;
       const animated = !motionPreference.matches;
       windowStates.forEach((state, index) => {
         if (animated && state.phase === "move") {
@@ -232,6 +244,21 @@ export function StudyWindows({ study }: { study: number }) {
             if (age >= 0 && age < 0.42) scale -= Math.sin(age / 0.42 * Math.PI) ** 2 * 0.065;
           }
           state.group.scale.setScalar(scale);
+        }
+        const sheen = sheens[index];
+        if (sheen) {
+          const rect = state.currentRect;
+          const dx = Math.max(Math.abs(pointer.x - rect.x) - rect.width / 2, 0);
+          const dy = Math.max(Math.abs(pointer.y - rect.y) - rect.height / 2, 0);
+          const target = pointer.active && animated && state.group.visible ? Math.exp(-(dx * dx + dy * dy) / 2.2) : 0;
+          sheenStrength[index] = animated ? sheenStrength[index]! + (target - sheenStrength[index]!) * response : 0;
+          sheen.mesh.visible = state.group.visible && sheenStrength[index]! > 0.002;
+          sheen.mesh.position.x = rect.x;
+          sheen.mesh.position.y = rect.y;
+          sheen.mesh.scale.set(rect.width + 0.12, rect.height + 0.12, 1);
+          sheen.material.uniforms.size!.value.set(rect.width, rect.height);
+          sheen.material.uniforms.head!.value = clock / 1000 * 1.9 + index * 1.1;
+          sheen.material.uniforms.strength!.value = sheenStrength[index];
         }
         const line = outlines[index];
         if (line) {
@@ -318,6 +345,29 @@ export function StudyWindows({ study }: { study: number }) {
       const held = study === 5 && pointer.active && pointer.hovered >= 0 && !introPending;
       if (!held) clock += elapsed;
       const now = clock;
+      if (continuous) {
+        // Pointer coordinates map directly into the same inset used by resolveRect.
+        // Clamp only at size limits. A short frame-rate-independent response keeps
+        // cursor attachment tight; every neighbor is recomputed from one partition.
+        if (pointer.active) {
+          const minWidth = Math.min(0.2, 1.1 / viewportWidth);
+          const x = Math.max(minWidth, Math.min(1 - minWidth,
+            (pointer.x + viewportWidth / 2 - 0.22) / (viewportWidth - 0.44)));
+          const y = Math.max(0.2, Math.min(compact ? 0.8 : 0.6,
+            (viewportHeight / 2 - 0.22 - pointer.y) / (viewportHeight - 0.13)));
+          const follow = 1 - Math.exp(-elapsed / 1000 * 32);
+          layout.top += (x - layout.top) * follow;
+          layout.bottom += (x - layout.bottom) * follow;
+          if (study === 13 || compact) layout.rows += (y - layout.rows) * follow;
+        }
+        visibleStates().forEach((state) => {
+          state.currentRect = resolveRect(state);
+          setWindowRect(state, state.currentRect);
+        });
+        render();
+        frame = window.requestAnimationFrame(animate);
+        return;
+      }
       if (now >= nextBeatAt) {
         nextBeatAt = Infinity;
         if (introPending) beginOpening();
@@ -537,7 +587,7 @@ export function StudyWindows({ study }: { study: number }) {
     const acceptsPointer = (event: PointerEvent) => {
       const target = event.target;
       return canAnimate() && event.pointerType === "mouse" && pointerPreference.matches
-        && !(target instanceof Element && target.closest(".hero, .motion-study-panel, footer"));
+        && !(target instanceof Element && target.closest(continuous ? ".motion-study-panel, footer" : ".hero, .motion-study-panel, footer"));
     };
     const movePointer = (event: PointerEvent) => {
       if (!acceptsPointer(event)) { resetPointer(); return; }
@@ -624,6 +674,7 @@ export function StudyWindows({ study }: { study: number }) {
       document.documentElement.removeEventListener("pointerleave", resetPointer);
       pointerPreference.removeEventListener("change", resume);
       resetPointer();
+      sheens.forEach(({ mesh, material }) => { mesh.geometry.dispose(); material.dispose(); });
       outlines.forEach((line) => { line.geometry.dispose(); (line.material as LineBasicMaterial).dispose(); });
       ring.geometry.dispose();
       ringMaterial.dispose();

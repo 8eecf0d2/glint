@@ -25,12 +25,12 @@ export function MotionStudy({ study }: { study: number }) {
   return <>
     <StudyWindows study={study} key={`${study}-${replay}`} />
     <aside className="motion-study-panel" aria-label="Animation variation">
-      <div className="motion-study-title"><span>{String(study).padStart(2, "0")} / 10</span><strong>{item.name}</strong></div>
-      <p>{reduced ? "Reduced motion is enabled. Showing the static composition." : !finePointer && [4, 5, 7, 8, 10].includes(study) ? "Use a mouse or trackpad to try this interaction." : item.hint}</p>
+      <div className="motion-study-title"><span>{String(study).padStart(2, "0")} / {motionStudies.length}</span><strong>{item.name}</strong></div>
+      <p>{reduced ? "Reduced motion is enabled. Showing the static composition." : !finePointer && [4, 5, 7, 8, 10, 11, 12, 13].includes(study) ? "Use a mouse or trackpad to try this interaction." : item.hint}</p>
       <nav aria-label="Variation controls">
-        <a href={`?motion=${study === 1 ? 10 : study - 1}`} aria-label="Previous variation">←</a>
+        <a href={`?motion=${study === 1 ? motionStudies.length : study - 1}`} aria-label="Previous variation">←</a>
         <button type="button" onClick={() => setReplay((value) => value + 1)}>Replay</button>
-        <a href={`?motion=${study === 10 ? 1 : study + 1}`} aria-label="Next variation">→</a>
+        <a href={`?motion=${study === motionStudies.length ? 1 : study + 1}`} aria-label="Next variation">→</a>
         <a className="motion-study-original" href="/">Original ↗</a>
       </nav>
     </aside>

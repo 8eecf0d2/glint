@@ -81,3 +81,25 @@ test('occupied destinations are cleared before arrival, without colliding reserv
   }
   assert.deepEqual(planRelocation([{ id: 0, slot: 0 }, { id: 1, slot: 1 }], 0, 1, 2), []);
 });
+
+test('continuous study partitions follow arbitrary cursor positions without snapping and respect bounds', () => {
+  for (const compact of [false, true]) {
+    for (const minWidth of [0.08, 0.2]) {
+      for (let i = -100; i <= 1100; i++) {
+        const x = i / 1000;
+        const cells = regions({ ...initialLayout(), top: x, bottom: x, rows: x }, compact, minWidth, 0.2, false);
+        clear(cells);
+        cells.forEach((rect) => {
+          assert.ok(rect.width >= minWidth - 1e-9);
+          assert.ok(rect.height >= 0.2 - 1e-9);
+        });
+        if (!compact && x >= minWidth && x <= 1 - minWidth) {
+          assert.ok(Math.abs(cells[0].width - x) < 1e-9, 'width follows the exact requested position');
+        }
+        if (compact && x >= 0.2 && x <= 0.8) {
+          assert.ok(Math.abs(cells[0].height - x) < 1e-9, 'height follows the exact requested position');
+        }
+      }
+    }
+  }
+});

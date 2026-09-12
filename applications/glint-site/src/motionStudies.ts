@@ -9,9 +9,12 @@ export const motionStudies = [
   { name: "Edge tracing", hint: "Hover near a window and watch its outline draw itself.", idea: "A precise, restrained acknowledgement of your presence." },
   { name: "Quiet choreography", hint: "Watch the slower sequence: divide, expand, balance, reset.", idea: "More intention and breathing room in the existing motion." },
   { name: "Reveal lens", hint: "Move over the blurred background to uncover the windows underneath.", idea: "A local clearing in the existing blur; nothing shifts or changes color." },
+  { name: "Cursor-connected", hint: "Move left and right. The divider follows your exact position, within minimum window sizes.", idea: "Continuous shared resizing without percentage steps or waiting for a beat." },
+  { name: "Traveling sheen", hint: "Move near a window. A tapered glint travels around its edge.", idea: "A moving reflection with a bright head and fading tail, not a full border." },
+  { name: "Living seams", hint: "Move in both directions. Widths and heights follow you while a sheen runs along nearby edges.", idea: "Continuous two-axis resizing paired with an edge reflection." },
 ] as const;
 
 export function studyFromSearch(search: string): number {
   const value = new URLSearchParams(search).get("motion");
-  return value && /^(?:[1-9]|10)$/.test(value) ? Number(value) : 0;
+  return value && /^(?:[1-9]|1[0-3])$/.test(value) ? Number(value) : 0;
 }

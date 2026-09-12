@@ -28,3 +28,13 @@ Start feedback with 02, 08 and 09: they fit the product's emphasis on spatial cl
 All fills retain the original neutral palette. Echoes, guides and rings use neutral gray only. No camera transforms. Hero, download action, footer and controls do not capture background gestures. Mouse-only studies require a fine hovering pointer; the tap wave also supports touch. Reduced motion uses a static composition. Hidden tabs cancel animation frames and resume without a catch-up burst. Shared partitions retain their existing minimum sizes, and compression never enlarges a window beyond its allocated rectangle. The renderer is isolated in `StudyWindows.tsx` so prototype behavior cannot change the baseline.
 
 Tests cover the production layout invariants. Typecheck/build verify both renderers. Browser review is still necessary for subjective timing, Safari masking and visual preference. These studies add no dependencies and are not deployed.
+
+## Round two: studies 11–13
+
+Feedback: 7 was the strongest interaction but its snapping and delayed response broke cursor connection. 8 had potential but a plain border was insufficient. 2 and 3 were interesting but poorly executed; the other directions were rejected or unclear.
+
+- **11 — Cursor-connected:** the shared vertical divider follows the actual cursor x-coordinate with a roughly 31 ms response, clamped by the minimum width of each side. No quantization, beat delay, lifecycle interruption or autonomous movement. Compact layouts use cursor y instead.
+- **12 — Traveling sheen:** existing choreography with a short silver highlight traveling around nearby rounded window edges. A bright head, tapered tail and soft feather replace the full outline. Proximity fades it in/out; the fill stays unchanged.
+- **13 — Living seams:** continuous x/y control over shared widths and row heights, paired with the moving sheen. Nested rows preserve minimum heights. Cursor movement across the hero remains connected while all text and links retain their normal behavior.
+
+The original ten remain available. Study navigation now includes all thirteen. Continuous partitioning is an opt-in argument used by 11/13; baseline snapping remains the default. Layout tests verify arbitrary cursor positions, clamping and non-overlap. No new dependencies or deployment.
