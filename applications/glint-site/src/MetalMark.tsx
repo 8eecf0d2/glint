@@ -22,13 +22,13 @@ export function MetalMark({ active }: { active: boolean }) {
     colorBack="#00000000"
     colorTint="#ffffff"
     repetition={2}
-    softness={0.12}
+    softness={0.18}
     shiftRed={0}
     shiftBlue={0}
     distortion={0.07}
     contour={0.4}
     angle={70}
-    speed={active && canAnimate ? 0.6 : 0}
+    speed={active && canAnimate ? 1 : 0}
     frame={800}
     scale={1}
     fit="contain"

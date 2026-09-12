@@ -136,7 +136,7 @@ footer a:hover { color: #171a1f; text-decoration-color: currentColor; }
 .mark-art, .mark-metal { position: absolute; inset: 0; width: 100%; height: 100%; }
 .mark-metal { opacity: 0; pointer-events: none; }
 .mark-metal canvas { display: block; }
-.logo-visible .mark-metal { animation: metal-reveal 2.6s 0.08s ease-in-out both; }
+.logo-visible .mark-metal { animation: metal-reveal 1.55s 0.08s ease-in-out both; }
 .logo-visible .hero-mark { animation: mark-arrive 0.2s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .logo-docked .hero-mark { animation: mark-dock 0.65s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .hero h1, .subtitle, .actions, footer {
@@ -163,7 +163,7 @@ footer a:hover { color: #171a1f; text-decoration-color: currentColor; }
 }
 @keyframes metal-reveal {
   0%, 100% { opacity: 0; }
-  12%, 85% { opacity: 1; }
+  15%, 70% { opacity: 0.45; }
 }
 @keyframes content-arrive {
   from { opacity: 0; visibility: visible; transform: translateY(16px); }
