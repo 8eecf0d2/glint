@@ -116,3 +116,34 @@ footer a:hover { color: #171a1f; text-decoration-color: currentColor; }
   .actions { margin-top: 22px; flex-direction: column; }
   .download { max-width: 100%; }
 }
+
+/* Local motion studies only; the original homepage has no study controls. */
+.motion-study-panel {
+  position: fixed; z-index: 5; left: 24px; top: 24px;
+  width: min(340px, calc(100vw - 48px)); padding: 16px 18px;
+  background: rgb(255 255 255 / 94%); border: 1px solid #e8e8e8; border-radius: 14px;
+  box-shadow: 0 4px 24px rgb(0 0 0 / 3%);
+}
+.motion-study-title { display: flex; align-items: center; gap: 12px; font-size: 13px; }
+.motion-study-title span { color: #939393; font-variant-numeric: tabular-nums; font-size: 11px; }
+.motion-study-title strong { font-weight: 600; }
+.motion-study-panel p { margin: 9px 0 13px; font-size: 12px; line-height: 1.5; color: #767676; }
+.motion-study-panel nav { display: flex; align-items: center; gap: 6px; }
+.motion-study-panel nav a, .motion-study-panel button {
+  border: 1px solid #e7e7e7; background: white; color: #555; border-radius: 6px;
+  padding: 5px 9px; font: inherit; font-size: 11px; cursor: pointer;
+}
+.motion-study-panel nav .motion-study-original { margin-left: auto; border-color: transparent; }
+.motion-study-panel :focus-visible { outline: 2px solid #777; outline-offset: 3px; }
+.page[data-motion="10"] .hero-blur {
+  -webkit-mask-image: radial-gradient(ellipse, #000 28%, rgb(0 0 0 / 85%) 48%, transparent 73%),
+    radial-gradient(circle at var(--lens-x, -1000px) var(--lens-y, -1000px), transparent 55px, #000 150px);
+  mask-image: radial-gradient(ellipse, #000 28%, rgb(0 0 0 / 85%) 48%, transparent 73%),
+    radial-gradient(circle at var(--lens-x, -1000px) var(--lens-y, -1000px), transparent 55px, #000 150px);
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+}
+@media (max-width: 620px), (max-height: 650px) {
+  .motion-study-panel { top: 10px; left: 10px; padding: 10px 12px; width: min(340px, calc(100vw - 20px)); }
+  .motion-study-panel p { margin: 5px 0 7px; }
+}
