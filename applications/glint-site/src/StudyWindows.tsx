@@ -107,7 +107,7 @@ export function StudyWindows({ study }: { study: number }) {
     if (!mount) return;
     const motionPreference = window.matchMedia("(prefers-reduced-motion: reduce)");
     const continuous = study === 11;
-    const windowCount = study === 13 ? 8 : 6;
+    const windowCount = study === 13 ? 5 : 6;
     const pointerPreference = window.matchMedia("(hover: hover) and (pointer: fine)");
     const pointer = { x: 0, y: 0, active: false, hovered: -1, changedAt: 0 };
     const wakeAt = Array(windowCount).fill(-10000) as number[];
@@ -116,7 +116,7 @@ export function StudyWindows({ study }: { study: number }) {
     const random = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
     const looseLayout = initialLooseLayout(random);
     let localBand = 0;
-    const initialSlots = [0, 1, 3, 5, 6, 8, 10, 11];
+    const initialSlots = [0, 1, 5, 8, 10];
     let clock = 0;
     let lastTime = 0;
     let nextBeatAt = Infinity;
@@ -126,6 +126,7 @@ export function StudyWindows({ study }: { study: number }) {
     const scene = new Scene();
     const viewportHeight = 10;
     let viewportWidth = viewportHeight;
+    let viewportPixelHeight = Math.max(mount.clientHeight, 1);
     let compact = false;
     const camera = new OrthographicCamera(-5, 5, 5, -5, 0.1, 100);
     camera.position.z = 10;
@@ -175,7 +176,7 @@ export function StudyWindows({ study }: { study: number }) {
     const cellRect = (state: WindowState): WindowRect => {
       const slot = cells()[state.slot] ?? cells()[0]!;
       const outerInset = 0.22;
-      const gap = study === 13 ? 10 * viewportHeight / Math.max(mount.clientHeight, 1) : 0.18;
+      const gap = study === 13 ? 10 * viewportHeight / viewportPixelHeight : 0.18;
       const usableWidth = viewportWidth - outerInset * 2;
       // The canvas already reserves the footer gap; do not add a second bottom inset.
       const usableHeight = viewportHeight - outerInset + gap / 2;
@@ -423,10 +424,20 @@ export function StudyWindows({ study }: { study: number }) {
         frame = window.requestAnimationFrame(animate);
         return;
       }
+      if (study === 13 && pointer.active) {
+        const x = (pointer.x + viewportWidth / 2 - 0.22) / (viewportWidth - 0.44);
+        const y = (viewportHeight / 2 - 0.22 - pointer.y) / (viewportHeight - 0.22 + 5 * viewportHeight / viewportPixelHeight);
+        const follow = 1 - Math.exp(-elapsed / 1000 * 26);
+        if (compact) layout.rows += (Math.max(0.2, Math.min(0.8, y)) - layout.rows) * follow;
+        else followLooseLayout(looseLayout, x, y, localBand, follow);
+      }
       const hadMovement = windowStates.some((state) => state.moving);
       let moving = false;
       windowStates.forEach((state) => {
         if (!state.moving) return;
+        // A moving window follows the live destination, including its dimensions.
+        // Cursor resizing remains active while it travels and it arrives full-size.
+        if (study === 13) state.targetRect = resolveRect(state);
         const raw = Math.min(Math.max((now - state.startedAt) / (state.duration * 1000), 0), 1);
         const progress = state.phase === "close" ? raw * raw : study === 1 ? 1 - (1 + 8 * raw) * Math.exp(-8 * raw) + raw * 9 * Math.exp(-8) : study === 9 ? raw * raw * (3 - 2 * raw) : easeOutCubic(raw);
         state.currentRect = interpolateRect(state.fromRect, state.targetRect, progress);
@@ -446,17 +457,12 @@ export function StudyWindows({ study }: { study: number }) {
         }
         moving ||= state.moving;
       });
-      if (study === 13 && pointer.active && !pending.length && !moving) {
-        const x = (pointer.x + viewportWidth / 2 - 0.22) / (viewportWidth - 0.44);
-        const y = (viewportHeight / 2 - 0.22 - pointer.y) / (viewportHeight - 0.22 + 5 * viewportHeight / Math.max(mount.clientHeight, 1));
-        const follow = 1 - Math.exp(-elapsed / 1000 * 26);
-        if (compact) layout.rows += (Math.max(0.2, Math.min(0.8, y)) - layout.rows) * follow;
-        else followLooseLayout(looseLayout, x, y, localBand, follow);
-        visibleStates().forEach((state) => {
+      if (study === 13) visibleStates().forEach((state) => {
+        if (!state.moving) {
           state.currentRect = resolveRect(state);
           setWindowRect(state, state.currentRect);
-        });
-      }
+        }
+      });
       render();
       if (hadMovement && !moving) schedule(pending.length ? 0.1 : restAfterMovement);
       frame = window.requestAnimationFrame(animate);
@@ -499,6 +505,17 @@ export function StudyWindows({ study }: { study: number }) {
 
     function queueTravel(placements: Placement[]) {
       const movers = placements.map(({ id }) => windowStates[id]!);
+      if (study === 13) {
+        pending.push(() => {
+          placements.forEach(({ slot }, index) => {
+            movers[index]!.slot = slot;
+            movers[index]!.group.position.z = 1 + index * 0.03;
+          });
+          // Translation and resizing use the same transition; no fit/grow phases.
+          transition(movers, 0.58);
+        });
+        return;
+      }
       // Fit inside both source and destination before crossing the desktop.
       // Growth happens after arrival, wholly inside the reserved empty region.
       const targets = placements.map(({ slot }, index) => resolveRect({ ...movers[index]!, slot }));
@@ -639,7 +656,7 @@ export function StudyWindows({ study }: { study: number }) {
       pointer.active = true;
       if (study === 13 && !compact) {
         const zone = pointer.x < 0 ? 0 : 1;
-        const y = (viewportHeight / 2 - 0.22 - pointer.y) / (viewportHeight - 0.22 + 5 * viewportHeight / Math.max(mount.clientHeight, 1));
+        const y = (viewportHeight / 2 - 0.22 - pointer.y) / (viewportHeight - 0.22 + 5 * viewportHeight / viewportPixelHeight);
         const cuts = looseLayout.rows[zone]!;
         if (Math.min(Math.abs(y - cuts[0]!), Math.abs(y - cuts[1]!)) > 0.02) {
           localBand = y < cuts[0]! ? 0 : y < cuts[1]! ? 1 : 2;
@@ -675,6 +692,7 @@ export function StudyWindows({ study }: { study: number }) {
       echoHistory.forEach((history) => { history.length = 0; });
       const width = Math.max(mount.clientWidth, 1);
       const height = Math.max(mount.clientHeight, 1);
+      viewportPixelHeight = height;
       compact = width < 620;
       viewportWidth = viewportHeight * width / height;
       renderer.setSize(width, height, false);

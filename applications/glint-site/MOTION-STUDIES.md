@@ -54,3 +54,7 @@ The isolated shrinking rectangles were rejected. Study 13 now fills each occupie
 ## Hover geometry fix and spacing
 
 Latest feedback supersedes the zero-gap/square-corner treatment: 13 now has a consistent 10 CSS px gutter and 12 CSS px radius. Resizing uses a fixed convex triangle fan with vertex updates in place, avoiding repeated path triangulation and degenerate zero-radius corners. A 1,500-frame resize regression verifies finite vertices, bounds, positive triangle winding and buffer reuse. Safari hover review shows rounded silhouettes; entrance, vacancy moves and local shared resizing remain active.
+
+## Five windows, uninterrupted cursor control
+
+Study 13 now has five windows. Its relocations use one transition that interpolates both position and size toward the live destination, eliminating the fit/travel/grow sequence. Pointer input updates the shared layout every frame, including during relocation; settled windows update immediately, and moving windows sample their current destination bounds before interpolation. This removes the explicit movement/pending-work gate that intermittently disconnected cursor resizing. Canvas height is cached on resize rather than repeatedly read during geometry updates. Earlier studies retain their original transition behavior.
