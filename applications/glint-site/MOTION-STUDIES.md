@@ -50,3 +50,7 @@ The outline sheen was also rejected and is removed from 13. The static eight-win
 ## Final refinement of this round: connected desktop
 
 The isolated shrinking rectangles were rejected. Study 13 now fills each occupied reservation completely, with zero gutters and square meeting corners. Each neighborhood has three independently sized row pairs: cursor motion resizes a shared vertical edge and a nearby horizontal edge. Neighbors gain exactly the area others relinquish. Other row widths and distant neighborhoods stay unchanged. Four unoccupied cells provide the only whitespace, and windows continue moving into those vacancies after their floating entrance. Shared geometry is held fixed during travel so a resizing destination cannot invalidate a move. The contact/minimum-size test replaces the discarded independent-size test.
+
+## Hover geometry fix and spacing
+
+Latest feedback supersedes the zero-gap/square-corner treatment: 13 now has a consistent 10 CSS px gutter and 12 CSS px radius. Resizing uses a fixed convex triangle fan with vertex updates in place, avoiding repeated path triangulation and degenerate zero-radius corners. A 1,500-frame resize regression verifies finite vertices, bounds, positive triangle winding and buffer reuse. Safari hover review shows rounded silhouettes; entrance, vacancy moves and local shared resizing remain active.

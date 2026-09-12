@@ -131,3 +131,27 @@ test('local shared resizing preserves contact, bounds, vacancies and distant geo
     assert.deepEqual(planRelocation(occupied, i % 8, target, 12), [[{ id: i % 8, slot: target }]]);
   }
 });
+
+test('rounded window mesh retains valid triangles and fixed buffers during repeated hover resizing', async () => {
+  const { createRoundedWindowGeometry, updateRoundedWindowGeometry } = await import('../src/roundedWindowGeometry.ts');
+  const geometry = createRoundedWindowGeometry();
+  const position = geometry.getAttribute('position');
+  const indices = geometry.getIndex();
+  for (let frame = 0; frame < 1500; frame++) {
+    const width = 0.6 + (1 + Math.sin(frame * 0.17)) * 4;
+    const height = 0.5 + (1 + Math.cos(frame * 0.13)) * 3;
+    updateRoundedWindowGeometry(geometry, width, height, 0.18);
+    assert.equal(geometry.getAttribute('position'), position);
+    assert.equal(geometry.getIndex(), indices);
+    for (let i = 0; i < position.count; i++) {
+      assert.ok(Number.isFinite(position.getX(i)) && Number.isFinite(position.getY(i)));
+      assert.ok(Math.abs(position.getX(i)) <= width / 2 + 1e-6);
+      assert.ok(Math.abs(position.getY(i)) <= height / 2 + 1e-6);
+    }
+    for (let i = 0; i < indices.count; i += 3) {
+      const b = indices.getX(i + 1), c = indices.getX(i + 2);
+      assert.ok(position.getX(b) * position.getY(c) - position.getY(b) * position.getX(c) > 0, 'triangles retain positive winding');
+    }
+  }
+  geometry.dispose();
+});

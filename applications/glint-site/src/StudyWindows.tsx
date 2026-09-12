@@ -6,6 +6,7 @@ import {
 import type { Material, Object3D } from "three";
 import { initialLayout, planRelocation, regions } from "./windowLayout";
 import type { Divider, LayoutRect, Placement } from "./windowLayout";
+import { createRoundedWindowGeometry, updateRoundedWindowGeometry } from "./roundedWindowGeometry";
 import { createEdgeSheen } from "./edgeSheen";
 import { initialLooseLayout, looseWindowCells, followLooseLayout } from "./localWindowLayout";
 
@@ -78,11 +79,16 @@ function setWindowRect(windowState: WindowShape, rect: WindowRect) {
   windowState.group.position.y = rect.y;
   // Position-only movement can reuse its geometry.
   const size = windowState.fill.userData;
-  if (size.width !== rect.width || size.height !== rect.height) {
-    windowState.fill.geometry.dispose();
-    windowState.fill.geometry = new ShapeGeometry(roundedRectangleShape(rect.width, rect.height, size.cornerRadius ?? 0.18));
+  if (size.width !== rect.width || size.height !== rect.height || size.lastRadius !== size.cornerRadius) {
+    if (size.stableRounded) {
+      updateRoundedWindowGeometry(windowState.fill.geometry, rect.width, rect.height, size.cornerRadius);
+    } else {
+      windowState.fill.geometry.dispose();
+      windowState.fill.geometry = new ShapeGeometry(roundedRectangleShape(rect.width, rect.height, 0.18));
+    }
     size.width = rect.width;
     size.height = rect.height;
+    size.lastRadius = size.cornerRadius;
   }
   windowState.lights.forEach((light, lightIndex) => {
     light.position.set(-rect.width / 2 + 0.25 + lightIndex * 0.22, titlebarY + 0.17, 0);
@@ -148,7 +154,12 @@ export function StudyWindows({ study }: { study: number }) {
     const layout = initialLayout();
     const windowStates: WindowState[] = Array.from({ length: windowCount }, (_, index) => {
       const shape = createWindow();
-      if (study === 13) shape.fill.userData.cornerRadius = 0;
+      if (study === 13) {
+        shape.fill.geometry.dispose();
+        shape.fill.geometry = createRoundedWindowGeometry();
+        shape.fill.userData.stableRounded = true;
+        shape.fill.userData.cornerRadius = 0.18;
+      }
       const rect = { x: 0, y: 0, width: 1, height: 1 };
       shape.materials.forEach((material) => { material.opacity = 1; });
       shape.group.position.z = index * 0.03;
@@ -164,7 +175,7 @@ export function StudyWindows({ study }: { study: number }) {
     const cellRect = (state: WindowState): WindowRect => {
       const slot = cells()[state.slot] ?? cells()[0]!;
       const outerInset = 0.22;
-      const gap = study === 13 ? 0 : 0.18;
+      const gap = study === 13 ? 10 * viewportHeight / Math.max(mount.clientHeight, 1) : 0.18;
       const usableWidth = viewportWidth - outerInset * 2;
       // The canvas already reserves the footer gap; do not add a second bottom inset.
       const usableHeight = viewportHeight - outerInset + gap / 2;
@@ -437,7 +448,7 @@ export function StudyWindows({ study }: { study: number }) {
       });
       if (study === 13 && pointer.active && !pending.length && !moving) {
         const x = (pointer.x + viewportWidth / 2 - 0.22) / (viewportWidth - 0.44);
-        const y = (viewportHeight / 2 - 0.22 - pointer.y) / (viewportHeight - 0.22);
+        const y = (viewportHeight / 2 - 0.22 - pointer.y) / (viewportHeight - 0.22 + 5 * viewportHeight / Math.max(mount.clientHeight, 1));
         const follow = 1 - Math.exp(-elapsed / 1000 * 26);
         if (compact) layout.rows += (Math.max(0.2, Math.min(0.8, y)) - layout.rows) * follow;
         else followLooseLayout(looseLayout, x, y, localBand, follow);
@@ -628,7 +639,7 @@ export function StudyWindows({ study }: { study: number }) {
       pointer.active = true;
       if (study === 13 && !compact) {
         const zone = pointer.x < 0 ? 0 : 1;
-        const y = (viewportHeight / 2 - 0.22 - pointer.y) / (viewportHeight - 0.22);
+        const y = (viewportHeight / 2 - 0.22 - pointer.y) / (viewportHeight - 0.22 + 5 * viewportHeight / Math.max(mount.clientHeight, 1));
         const cuts = looseLayout.rows[zone]!;
         if (Math.min(Math.abs(y - cuts[0]!), Math.abs(y - cuts[1]!)) > 0.02) {
           localBand = y < cuts[0]! ? 0 : y < cuts[1]! ? 1 : 2;
@@ -667,6 +678,7 @@ export function StudyWindows({ study }: { study: number }) {
       compact = width < 620;
       viewportWidth = viewportHeight * width / height;
       renderer.setSize(width, height, false);
+      if (study === 13) windowStates.forEach((state) => { state.fill.userData.cornerRadius = 12 * viewportHeight / height; });
       camera.left = -viewportWidth / 2;
       camera.right = viewportWidth / 2;
       camera.updateProjectionMatrix();
