@@ -191,7 +191,10 @@ export function SpatialWindows({ onPhase }: { onPhase: (phase: number) => void }
     };
     const beginOpening = () => {
       introPending = false;
-      visible().forEach((state) => beginMove(state, [0, 25, 45, 70, 90][state.id]));
+      visible().forEach((state) => {
+        beginMove(state, [0, 10, 20, 30, 40][state.id]);
+        state.duration = 0.46;
+      });
     };
     const relocate = () => {
       // Change shared partitions before travel: every window arrives already fitted.
@@ -224,7 +227,7 @@ export function SpatialWindows({ onPhase }: { onPhase: (phase: number) => void }
       const elapsed = lastTime ? Math.min(timestamp - lastTime, 50) : 16;
       lastTime = timestamp;
       clock += elapsed;
-      const nextPhase = clock < 220 ? 0 : clock < 1120 ? 1 : clock < 1500 ? 2 : clock < 3000 ? 3 : clock < 3480 ? 4 : 5;
+      const nextPhase = clock < 220 ? 0 : clock < 1120 ? 1 : clock < 1540 ? 2 : clock < 3000 ? 3 : clock < 3480 ? 4 : 5;
       if (nextPhase > phase) { phase = nextPhase; onPhase(phase); }
       const soften = Math.min(Math.max((clock - 3280) / 900, 0), 1);
       visible().forEach((state) => {
@@ -298,7 +301,7 @@ export function SpatialWindows({ onPhase }: { onPhase: (phase: number) => void }
       cancel(); resetPointer();
       if (motionPreference.matches) { introPending = false; onPhase(5); states.forEach((state) => state.materials.forEach((material) => { material.opacity = 0.55; })); }
       settle(); render(); lastTime = 0;
-      if (canAnimate()) { nextMoveAt = introPending ? 1500 : clock + 2800; frame = window.requestAnimationFrame(animate); }
+      if (canAnimate()) { nextMoveAt = introPending ? 1540 : clock + 2800; frame = window.requestAnimationFrame(animate); }
     };
     const resize = () => {
       const width = Math.max(mount.clientWidth, 1);
