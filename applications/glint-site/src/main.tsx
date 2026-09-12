@@ -12,8 +12,6 @@ const MetalMark = lazy(() => import("./MetalMark").then((module) => ({ default: 
 
 const AmbientMesh = lazy(() => import("./AmbientMesh").then((module) => ({ default: module.AmbientMesh })));
 
-const ButtonMesh = lazy(() => import("./ButtonMesh").then((module) => ({ default: module.ButtonMesh })));
-
 function App() {
   const [phase, setPhase] = useState(0);
   const advance = useCallback((next: number) => setPhase((current) => Math.max(current, next)), []);
@@ -44,8 +42,7 @@ function App() {
 
         <div className="actions">
           <a className="download" href="https://github.com/8eecf0d2/glint/releases">
-            <Suspense fallback={null}><ButtonMesh active={phase >= 5} /></Suspense>
-            <span className="download-label">Download Glint</span>
+            <span>Download Glint</span>
             <ArrowDownToLine size={18} strokeWidth={1.8} aria-hidden="true" />
           </a>
         </div>
