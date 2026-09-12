@@ -191,7 +191,7 @@ export function SpatialWindows({ onPhase }: { onPhase: (phase: number) => void }
     };
     const beginOpening = () => {
       introPending = false;
-      visible().forEach((state) => beginMove(state, [0, 170, 35, 280, 65][state.id]));
+      visible().forEach((state) => beginMove(state, [0, 25, 45, 70, 90][state.id]));
     };
     const relocate = () => {
       // Change shared partitions before travel: every window arrives already fitted.
@@ -224,9 +224,9 @@ export function SpatialWindows({ onPhase }: { onPhase: (phase: number) => void }
       const elapsed = lastTime ? Math.min(timestamp - lastTime, 50) : 16;
       lastTime = timestamp;
       clock += elapsed;
-      const nextPhase = clock < 220 ? 0 : clock < 1120 ? 1 : clock < 2670 ? 2 : clock < 4450 ? 3 : clock < 5100 ? 4 : 5;
+      const nextPhase = clock < 220 ? 0 : clock < 1120 ? 1 : clock < 2670 ? 2 : clock < 4450 ? 3 : clock < 4850 ? 4 : 5;
       if (nextPhase > phase) { phase = nextPhase; onPhase(phase); }
-      const soften = Math.min(Math.max((clock - 4900) / 900, 0), 1);
+      const soften = Math.min(Math.max((clock - 4650) / 900, 0), 1);
       visible().forEach((state) => {
         const entrance = Math.min(Math.max((clock - 240 - entranceDelays[state.id]!) / 420, 0), 1);
         state.materials.forEach((material) => { material.opacity = easeOutCubic(entrance) * (1 - soften * 0.45); });

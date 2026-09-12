@@ -123,9 +123,8 @@ footer a:hover { color: #171a1f; text-decoration-color: currentColor; }
 .mark-metal { opacity: 0; pointer-events: none; }
 .mark-metal canvas { display: block; }
 .logo-visible .mark-metal { animation: metal-reveal 2.6s 0.08s ease-in-out both; }
-.logo-visible .hero-mark { animation: mark-arrive 0.32s linear both; }
+.logo-visible .hero-mark { animation: mark-arrive 0.2s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .logo-docked .hero-mark { animation: mark-dock 0.65s cubic-bezier(0.22, 1, 0.36, 1) both; }
-.logo-docked .mark-art { animation: mark-float 5s 0.65s ease-in-out infinite; }
 .hero h1, .subtitle, .actions, footer {
   opacity: 0;
   visibility: hidden;
@@ -135,25 +134,23 @@ footer a:hover { color: #171a1f; text-decoration-color: currentColor; }
 .content-visible .actions, .content-visible footer {
   animation: content-arrive 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
-.content-visible .subtitle { animation-delay: 0.08s; }
-.content-visible .actions { animation-delay: 0.34s; }
-.content-visible footer { animation-delay: 0.62s; }
+.content-visible .subtitle { animation-delay: 0.06s; }
+.content-visible .actions { animation-delay: 0.14s; }
+.content-visible footer { animation-delay: 0.25s; }
 .hero-blur { opacity: 0; transition: opacity 1s ease; background: radial-gradient(ellipse, #fffc 10%, #fff5 45%, transparent 70%); }
 .content-visible .hero-blur { opacity: 1; }
 @keyframes mark-arrive {
-  0% { opacity: 0; transform: translateY(100px) scale(0.3); animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1); }
-  48% { opacity: 1; transform: translateY(100px) scale(1.2); animation-timing-function: ease-out; }
-  100% { opacity: 1; transform: translateY(100px) scale(1.06); }
+  from { opacity: 0; transform: translateY(100px) scale(0.7); }
+  to { opacity: 1; transform: translateY(100px) scale(1); }
 }
 @keyframes mark-dock {
-  from { opacity: 1; transform: translateY(100px) scale(1.06); }
+  from { opacity: 1; transform: translateY(100px) scale(1); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 @keyframes metal-reveal {
   0%, 100% { opacity: 0; }
   12%, 85% { opacity: 1; }
 }
-@keyframes mark-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
 @keyframes content-arrive {
   from { opacity: 0; visibility: visible; transform: translateY(16px); }
   to { opacity: 1; visibility: visible; transform: translateY(0); }
