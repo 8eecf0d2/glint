@@ -136,8 +136,9 @@ footer a:hover { color: #171a1f; text-decoration-color: currentColor; }
 .mark-art, .mark-metal { position: absolute; inset: 0; width: 100%; height: 100%; }
 .mark-metal { opacity: 0; pointer-events: none; }
 .mark-metal canvas { display: block; }
-.logo-visible .mark-metal { animation: metal-reveal 1.2s 0.42s ease-in-out both; }
-.logo-visible .hero-mark { animation: mark-arrive 0.7s linear both; }
+.logo-visible .mark-metal { animation: metal-reveal 1.2s 0.38s ease-in-out both; }
+.logo-visible .hero-mark { animation: mark-arrive 0.38s cubic-bezier(0.6, 0, 1, 0.45) both, mark-appear 0.1s ease-out both; }
+.logo-impact .spatial-background { animation: impact-settle 0.16s ease-out both; }
 .logo-docked .hero-mark { animation: mark-dock 0.85s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .hero h1, .subtitle, .actions, footer {
   opacity: 0;
@@ -153,34 +154,19 @@ footer a:hover { color: #171a1f; text-decoration-color: currentColor; }
 .content-visible footer { animation-delay: 0.25s; }
 .hero-blur { opacity: 0; transition: opacity 1s ease; background: radial-gradient(ellipse, #fffc 10%, #fff5 45%, transparent 70%); }
 .content-visible .hero-blur { opacity: 1; }
+/* A rigid approach accelerates into a hard stop; only the surroundings react. */
 @keyframes mark-arrive {
-  0% {
-    opacity: 0;
-    transform: perspective(700px) translateY(74px) translateZ(380px) rotateX(12deg) rotateY(-9deg) scale(1);
-    filter: blur(2px) drop-shadow(0 24px 18px #0004);
-    animation-timing-function: ease-out;
-  }
-  18% {
-    opacity: 1;
-    transform: perspective(700px) translateY(76px) translateZ(360px) rotateX(10deg) rotateY(-7deg) scale(1);
-    filter: blur(1px) drop-shadow(0 22px 16px #0004);
-    animation-timing-function: cubic-bezier(0.65, 0, 0.9, 0.4);
-  }
-  60% {
-    opacity: 1;
-    transform: perspective(700px) translateY(102px) translateZ(0) rotateX(0deg) rotateY(0deg) scale(1.025, 0.96);
-    filter: blur(0) drop-shadow(0 2px 1px #0005);
-    animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
-  }
-  100% {
-    opacity: 1;
-    transform: perspective(700px) translateY(100px) translateZ(0) rotateX(0deg) rotateY(0deg) scale(1);
-    filter: blur(0) drop-shadow(0 3px 2px #0002);
-  }
+  from { transform: translateY(100px) scale(2.2); }
+  to { transform: translateY(100px) scale(1); }
+}
+@keyframes mark-appear { from { opacity: 0; } to { opacity: 1; } }
+@keyframes impact-settle {
+  from { transform: translateY(2px); }
+  to { transform: translateY(0); }
 }
 @keyframes mark-dock {
-  from { opacity: 1; transform: translateY(100px) scale(1); filter: drop-shadow(0 3px 2px #0002); }
-  to { opacity: 1; transform: translateY(0) scale(1); filter: drop-shadow(0 0 0 transparent); }
+  from { opacity: 1; transform: translateY(100px) scale(1); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 @keyframes metal-reveal {
   0% { opacity: 0; }
@@ -193,6 +179,6 @@ footer a:hover { color: #171a1f; text-decoration-color: currentColor; }
 }
 @media (prefers-reduced-motion: reduce) {
   .hero-mark, .hero h1, .subtitle, .actions, footer { opacity: 1; visibility: visible; transform: none; animation: none !important; }
-  .mark-art, .mark-metal { animation: none !important; }
+  .mark-art, .mark-metal, .spatial-background { animation: none !important; }
   .hero-blur { opacity: 1; transition: none; }
 }

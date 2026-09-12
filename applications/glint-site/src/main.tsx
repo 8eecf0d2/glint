@@ -22,7 +22,7 @@ function App() {
     return () => window.clearTimeout(fallback);
   }, [advance]);
   return (
-    <main className={`page ${phase >= 1 ? "background-visible" : ""} ${phase >= 2 ? "logo-visible" : ""} ${phase >= 4 ? "logo-docked" : ""} ${phase >= 5 ? "content-visible" : ""}`}>
+    <main className={`page ${phase >= 1 ? "background-visible" : ""} ${phase >= 2 ? "logo-visible" : ""} ${phase >= 3 ? "logo-impact" : ""} ${phase >= 4 ? "logo-docked" : ""} ${phase >= 5 ? "content-visible" : ""}`}>
       <Suspense fallback={null}><AmbientMesh active={phase >= 1} /></Suspense>
       <Suspense fallback={null}>
         <SpatialWindows onPhase={advance} />
