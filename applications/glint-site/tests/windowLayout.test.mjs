@@ -103,3 +103,31 @@ test('continuous study partitions follow arbitrary cursor positions without snap
     }
   }
 });
+
+test('local shared resizing preserves contact, bounds, vacancies and distant geometry', async () => {
+  const { initialLooseLayout, looseWindowCells, followLooseLayout } = await import('../src/localWindowLayout.ts');
+  let seed = 7919;
+  const random = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 2 ** 32);
+  const layout = initialLooseLayout(random);
+  const before = looseWindowCells(layout).slice(6);
+  followLooseLayout(layout, 0.35, 0.2, 0, 1);
+  const topWidth = layout.columns[0];
+  followLooseLayout(layout, 0.13, 0.6, 1, 1);
+  assert.equal(layout.columns[0], topWidth);
+  assert.deepEqual(looseWindowCells(layout).slice(6), before);
+  for (let i = 0; i < 2000; i++) {
+    followLooseLayout(layout, random(), random(), i % 3, 0.4);
+    const cells = looseWindowCells(layout);
+    clear(cells);
+    assert.equal(cells.length, 12);
+    cells.forEach((cell) => { assert.ok(cell.width >= 0.125 - 1e-9); assert.ok(cell.height >= 0.18 - 1e-9); });
+    for (let j = 0; j < 12; j += 2) {
+      assert.ok(Math.abs(cells[j].x + cells[j].width - cells[j + 1].x) < 1e-9);
+      assert.equal(cells[j].y, cells[j + 1].y);
+      assert.equal(cells[j].height, cells[j + 1].height);
+    }
+    const occupied = [0, 1, 3, 5, 6, 8, 10, 11].map((slot, id) => ({ id, slot }));
+    const target = [2, 4, 7, 9][i % 4];
+    assert.deepEqual(planRelocation(occupied, i % 8, target, 12), [[{ id: i % 8, slot: target }]]);
+  }
+});

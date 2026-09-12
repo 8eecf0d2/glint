@@ -1,13 +1,13 @@
 import { Mesh, PlaneGeometry, ShaderMaterial, Vector2 } from "three";
 
-// A short, feathered reflection travels around a rounded rectangle. The rest of
-// the perimeter is fully transparent: this is never a persistent border stroke.
+// A soft outline catches light nearest the pointer. No orbit, running trace,
+// hard head or trailing tail; the reflection stays connected to the cursor.
 export function createEdgeSheen() {
   const material = new ShaderMaterial({
     transparent: true, depthTest: false, depthWrite: false,
     uniforms: {
       size: { value: new Vector2(1, 1) },
-      head: { value: 0 },
+      light: { value: new Vector2(0, 0) },
       strength: { value: 0 },
     },
     vertexShader: `
@@ -21,21 +21,18 @@ export function createEdgeSheen() {
     fragmentShader: `
       varying vec2 point;
       uniform vec2 size;
-      uniform float head;
+      uniform vec2 light;
       uniform float strength;
       void main() {
         vec2 halfSize = size * 0.5;
         float radius = min(0.18, min(halfSize.x, halfSize.y));
         vec2 q = abs(point) - halfSize + radius;
         float edge = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - radius;
-        float angle = atan(point.y / halfSize.y, point.x / halfSize.x);
-        float behind = mod(head - angle + 6.2831853, 6.2831853);
-        float tail = exp(-behind * 2.5) * (1.0 - smoothstep(0.0, 1.8, behind));
-        float core = exp(-pow(edge / 0.012, 2.0));
-        float feather = exp(-pow(edge / 0.045, 2.0));
-        float alpha = (core * 0.8 + feather * 0.2) * tail * strength;
-        // The feather gives a white highlight definition against the pale canvas.
-        vec3 silver = mix(vec3(0.46), vec3(1.0), core * exp(-behind * 4.0));
+        float nearby = exp(-dot(point - light, point - light) / 5.0);
+        float core = exp(-pow(edge / 0.009, 2.0));
+        float feather = exp(-pow(edge / 0.025, 2.0));
+        float alpha = (core * 0.24 + feather * 0.06) * (0.18 + nearby * 0.82) * strength;
+        vec3 silver = mix(vec3(0.60), vec3(0.91), nearby * core);
         gl_FragColor = vec4(silver, alpha);
       }
     `,

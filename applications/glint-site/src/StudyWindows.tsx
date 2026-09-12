@@ -7,6 +7,7 @@ import type { Material, Object3D } from "three";
 import { initialLayout, planRelocation, regions } from "./windowLayout";
 import type { Divider, LayoutRect, Placement } from "./windowLayout";
 import { createEdgeSheen } from "./edgeSheen";
+import { initialLooseLayout, looseWindowCells, followLooseLayout } from "./localWindowLayout";
 
 type WindowRect = LayoutRect;
 type WindowShape = { group: Group; fill: Mesh; lights: Mesh[]; materials: Material[] };
@@ -79,7 +80,7 @@ function setWindowRect(windowState: WindowShape, rect: WindowRect) {
   const size = windowState.fill.userData;
   if (size.width !== rect.width || size.height !== rect.height) {
     windowState.fill.geometry.dispose();
-    windowState.fill.geometry = new ShapeGeometry(roundedRectangleShape(rect.width, rect.height, 0.18));
+    windowState.fill.geometry = new ShapeGeometry(roundedRectangleShape(rect.width, rect.height, size.cornerRadius ?? 0.18));
     size.width = rect.width;
     size.height = rect.height;
   }
@@ -99,13 +100,17 @@ export function StudyWindows({ study }: { study: number }) {
     const mount = mountRef.current;
     if (!mount) return;
     const motionPreference = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const continuous = study === 11 || study === 13;
+    const continuous = study === 11;
+    const windowCount = study === 13 ? 8 : 6;
     const pointerPreference = window.matchMedia("(hover: hover) and (pointer: fine)");
     const pointer = { x: 0, y: 0, active: false, hovered: -1, changedAt: 0 };
-    const wakeAt = Array(6).fill(-10000) as number[];
-    const traces = Array(6).fill(0) as number[];
+    const wakeAt = Array(windowCount).fill(-10000) as number[];
+    const traces = Array(windowCount).fill(0) as number[];
     let seed = 271828;
     const random = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+    const looseLayout = initialLooseLayout(random);
+    let localBand = 0;
+    const initialSlots = [0, 1, 3, 5, 6, 8, 10, 11];
     let clock = 0;
     let lastTime = 0;
     let nextBeatAt = Infinity;
@@ -133,31 +138,33 @@ export function StudyWindows({ study }: { study: number }) {
 
     // Scatter across the whole desktop, with varied sizes and natural overlap.
     // Generate once so resize preserves the opening composition.
-    const scatter = Array.from({ length: 6 }, (_, index) => ({
-      x: 0.24 + (index % 3) * 0.25 + (random() - 0.5) * 0.12,
-      y: 0.32 + Math.floor(index / 3) * 0.3 + (random() - 0.5) * 0.16,
-      width: 0.29 + random() * 0.17,
+    const scatter = Array.from({ length: windowCount }, (_, index) => ({
+      x: study === 13 ? 0.3 + random() * 0.4 : 0.24 + (index % 3) * 0.25 + (random() - 0.5) * 0.12,
+      y: study === 13 ? 0.34 + random() * 0.32 : 0.32 + Math.floor(index / 3) * 0.3 + (random() - 0.5) * 0.16,
+      width: (study === 13 ? 0.18 : 0.29) + random() * 0.17,
       height: 0.32 + random() * 0.2,
     }));
     let introPending = !motionPreference.matches && !continuous;
     const layout = initialLayout();
-    const windowStates: WindowState[] = Array.from({ length: 6 }, (_, index) => {
+    const windowStates: WindowState[] = Array.from({ length: windowCount }, (_, index) => {
       const shape = createWindow();
+      if (study === 13) shape.fill.userData.cornerRadius = 0;
       const rect = { x: 0, y: 0, width: 1, height: 1 };
       shape.materials.forEach((material) => { material.opacity = 1; });
       shape.group.position.z = index * 0.03;
       scene.add(shape.group);
-      return { ...shape, id: index, active: [0, 1, 2, 4].includes(index), slot: index,
+      return { ...shape, id: index, active: study === 13 || [0, 1, 2, 4].includes(index), slot: study === 13 ? initialSlots[index]! : index,
         phase: "move", fromRotation: 0, currentRect: rect, fromRect: rect, targetRect: rect,
         startedAt: 0, duration: 0.4, moving: false };
     });
     const visibleStates = () => windowStates.filter((state) => state.active && (!compact || state.id < 2));
     const occupied = (): Placement[] => visibleStates().map(({ id, slot }) => ({ id, slot }));
-    const cells = () => regions(layout, compact, Math.min(0.2, 1.1 / viewportWidth), 0.2, !continuous);
-    const resolveRect = (state: WindowState): WindowRect => {
+    const cells = () => study === 13 && !compact ? looseWindowCells(looseLayout)
+      : regions(layout, compact, Math.min(0.2, 1.1 / viewportWidth), 0.2, !continuous);
+    const cellRect = (state: WindowState): WindowRect => {
       const slot = cells()[state.slot] ?? cells()[0]!;
       const outerInset = 0.22;
-      const gap = 0.18;
+      const gap = study === 13 ? 0 : 0.18;
       const usableWidth = viewportWidth - outerInset * 2;
       // The canvas already reserves the footer gap; do not add a second bottom inset.
       const usableHeight = viewportHeight - outerInset + gap / 2;
@@ -167,6 +174,11 @@ export function StudyWindows({ study }: { study: number }) {
         width: slot.width * usableWidth - gap,
         height: slot.height * usableHeight - gap,
       };
+    };
+
+    const resolveRect = (state: WindowState): WindowRect => {
+      const rect = cellRect(state);
+      return rect;
     };
 
     let frame = 0;
@@ -187,12 +199,12 @@ export function StudyWindows({ study }: { study: number }) {
       scene.add(line);
       return line;
     }) : [];
-    const sheens = study === 12 || study === 13 ? windowStates.map(() => {
+    const sheens = study === 12 ? windowStates.map(() => {
       const sheen = createEdgeSheen();
       scene.add(sheen.mesh);
       return sheen;
     }) : [];
-    const sheenStrength = Array(6).fill(0) as number[];
+    const sheenStrength = Array(windowCount).fill(0) as number[];
     let renderAt = performance.now();
     const echoHistory: { time: number; rect: WindowRect }[][] = windowStates.map(() => []);
     const echoes = study === 3 ? windowStates.map(() => [0, 1].map(() => {
@@ -257,7 +269,7 @@ export function StudyWindows({ study }: { study: number }) {
           sheen.mesh.position.y = rect.y;
           sheen.mesh.scale.set(rect.width + 0.12, rect.height + 0.12, 1);
           sheen.material.uniforms.size!.value.set(rect.width, rect.height);
-          sheen.material.uniforms.head!.value = clock / 1000 * 1.9 + index * 1.1;
+          sheen.material.uniforms.light!.value.lerp({ x: pointer.x - rect.x, y: pointer.y - rect.y }, response);
           sheen.material.uniforms.strength!.value = sheenStrength[index];
         }
         const line = outlines[index];
@@ -310,8 +322,8 @@ export function StudyWindows({ study }: { study: number }) {
       // Re-establish unique ownership when switching between two and six cells.
       if (wasCompact !== compact) {
         windowStates.forEach((state) => {
-          state.slot = state.id;
-          state.active = [0, 1, 2, 4].includes(state.id);
+          state.slot = study === 13 && !compact ? initialSlots[state.id]! : state.id;
+          state.active = study === 13 || [0, 1, 2, 4].includes(state.id);
         });
         wasCompact = compact;
       }
@@ -358,7 +370,7 @@ export function StudyWindows({ study }: { study: number }) {
           const follow = 1 - Math.exp(-elapsed / 1000 * 32);
           layout.top += (x - layout.top) * follow;
           layout.bottom += (x - layout.bottom) * follow;
-          if (study === 13 || compact) layout.rows += (y - layout.rows) * follow;
+          if (compact) layout.rows += (y - layout.rows) * follow;
         }
         visibleStates().forEach((state) => {
           state.currentRect = resolveRect(state);
@@ -423,6 +435,17 @@ export function StudyWindows({ study }: { study: number }) {
         }
         moving ||= state.moving;
       });
+      if (study === 13 && pointer.active && !pending.length && !moving) {
+        const x = (pointer.x + viewportWidth / 2 - 0.22) / (viewportWidth - 0.44);
+        const y = (viewportHeight / 2 - 0.22 - pointer.y) / (viewportHeight - 0.22);
+        const follow = 1 - Math.exp(-elapsed / 1000 * 26);
+        if (compact) layout.rows += (Math.max(0.2, Math.min(0.8, y)) - layout.rows) * follow;
+        else followLooseLayout(looseLayout, x, y, localBand, follow);
+        visibleStates().forEach((state) => {
+          state.currentRect = resolveRect(state);
+          setWindowRect(state, state.currentRect);
+        });
+      }
       render();
       if (hadMovement && !moving) schedule(pending.length ? 0.1 : restAfterMovement);
       frame = window.requestAnimationFrame(animate);
@@ -492,19 +515,21 @@ export function StudyWindows({ study }: { study: number }) {
 
     function beginRelocation() {
       const owners = occupied();
-      const capacity = compact ? 2 : 6;
+      const capacity = compact ? 2 : study === 13 ? 12 : 6;
       const vacancies = Array.from({ length: capacity }, (_, i) => i)
         .filter((slot) => !owners.some((owner) => owner.slot === slot));
       if (!vacancies.length) return false;
-      const source = owners[Math.floor(random() * owners.length)]!;
+      const candidates = study === 13 ? owners.filter((owner) => owner.id !== pointer.hovered) : owners;
+      if (!candidates.length) return false;
+      const source = candidates[Math.floor(random() * candidates.length)]!;
       const neighbors = owners.filter((owner) => owner.id !== source.id);
-      const target = neighbors.length && random() < 0.65
+      const target = study !== 13 && neighbors.length && random() < 0.65
         ? neighbors[Math.floor(random() * neighbors.length)]!.slot
         : vacancies[Math.floor(random() * vacancies.length)]!;
       const stages = planRelocation(owners, source.id, target, capacity);
       stages.forEach((stage) => queueTravel(stage));
       // Two independent moves may share a travel phase when there is room.
-      if (stages.length === 1 && vacancies.length > 1 && neighbors.length && random() < 0.6) {
+      if (study !== 13 && stages.length === 1 && vacancies.length > 1 && neighbors.length && random() < 0.6) {
         pending.length = 0;
         const companion = neighbors[Math.floor(random() * neighbors.length)]!;
         queueTravel([{ id: source.id, slot: target },
@@ -518,7 +543,7 @@ export function StudyWindows({ study }: { study: number }) {
     function beginLifecycle() {
       const eligible = windowStates.filter((state) => !compact || state.id < 2);
       const active = visibleStates();
-      const capacity = compact ? 2 : 6;
+      const capacity = compact ? 2 : study === 13 ? 12 : 6;
       const vacancies = Array.from({ length: capacity }, (_, i) => i)
         .filter((slot) => !active.some((state) => state.slot === slot));
       const closed = eligible.filter((state) => !state.active);
@@ -545,6 +570,11 @@ export function StudyWindows({ study }: { study: number }) {
       windowStates.forEach((state) => { state.group.position.z = state.id * 0.03; });
       restAfterMovement = 0.38 + random() * 0.42;
       const beat = beatIndex++;
+      if (study === 13) {
+        restAfterMovement = 1.0 + random() * 0.9;
+        if (!beginRelocation()) schedule(1.0);
+        return;
+      }
       if (study === 9) {
         restAfterMovement = 2.4;
         const sequence: [Divider, number][] = compact
@@ -587,7 +617,7 @@ export function StudyWindows({ study }: { study: number }) {
     const acceptsPointer = (event: PointerEvent) => {
       const target = event.target;
       return canAnimate() && event.pointerType === "mouse" && pointerPreference.matches
-        && !(target instanceof Element && target.closest(continuous ? ".motion-study-panel, footer" : ".hero, .motion-study-panel, footer"));
+        && !(target instanceof Element && target.closest(continuous || study === 13 ? ".motion-study-panel, footer" : ".hero, .motion-study-panel, footer"));
     };
     const movePointer = (event: PointerEvent) => {
       if (!acceptsPointer(event)) { resetPointer(); return; }
@@ -596,8 +626,18 @@ export function StudyWindows({ study }: { study: number }) {
       pointer.x = ((event.clientX - bounds.left) / bounds.width - 0.5) * viewportWidth;
       pointer.y = (0.5 - (event.clientY - bounds.top) / bounds.height) * viewportHeight;
       pointer.active = true;
-      const hovered = visibleStates().find((state) => Math.abs(state.currentRect.x - pointer.x) < state.currentRect.width / 2
-        && Math.abs(state.currentRect.y - pointer.y) < state.currentRect.height / 2)?.id ?? -1;
+      if (study === 13 && !compact) {
+        const zone = pointer.x < 0 ? 0 : 1;
+        const y = (viewportHeight / 2 - 0.22 - pointer.y) / (viewportHeight - 0.22);
+        const cuts = looseLayout.rows[zone]!;
+        if (Math.min(Math.abs(y - cuts[0]!), Math.abs(y - cuts[1]!)) > 0.02) {
+          localBand = y < cuts[0]! ? 0 : y < cuts[1]! ? 1 : 2;
+        }
+      }
+      const hovered = visibleStates().find((state) => {
+        const rect = study === 13 ? cellRect(state) : state.currentRect;
+        return Math.abs(rect.x - pointer.x) < rect.width / 2 && Math.abs(rect.y - pointer.y) < rect.height / 2;
+      })?.id ?? -1;
       if (hovered !== pointer.hovered) {
         pointer.hovered = hovered;
         pointer.changedAt = clock;

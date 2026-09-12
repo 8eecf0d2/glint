@@ -38,3 +38,15 @@ Feedback: 7 was the strongest interaction but its snapping and delayed response 
 - **13 — Living seams:** continuous x/y control over shared widths and row heights, paired with the moving sheen. Nested rows preserve minimum heights. Cursor movement across the hero remains connected while all text and links retain their normal behavior.
 
 The original ten remain available. Study navigation now includes all thirteen. Continuous partitioning is an opt-in argument used by 11/13; baseline snapping remains the default. Layout tests verify arbitrary cursor positions, clamping and non-overlap. No new dependencies or deployment.
+
+## Round three: local, persistent arrangement
+
+12/13 now use a subtle pointer-lit outline sheen, with no animated head or tail. Study 13 has eight windows in two independent neighborhoods. The cursor adjusts the nearby horizontal seam and the vertical seam of its current row. The opposite row's width is retained and the opposite neighborhood is untouched. This lets an upper window stay wide while a lower one becomes narrow, creating staggered edges. Proportions persist after pointer exit, with wider white gutters. No automatic realignment or percentage snapping. Compact screens keep the two-window fallback. A row-selection deadband avoids flicker when a boundary approaches the cursor.
+
+## Latest revision: loose desktop (13)
+
+The outline sheen was also rejected and is removed from 13. The static eight-window arrangement is superseded by a central floating entrance with random-looking sizes, then ongoing vacancy moves. Eight windows use twelve uneven, invisible reservations; four remain empty. Window sizes occupy varying portions of those spaces and retain their proportions on relocation. Cursor movement inside an occupied reservation resizes only its settled window, keeping its upper-left corner fixed; distant windows remain unchanged. The full reservation bounds and minimum dimensions limit growth/shrinkage without percentage snapping. Autonomous moves avoid the window under the cursor and use empty destinations, with fit/travel/grow phases. Wider gutters and individually retained sizes produce staggered edges and whitespace. This is a local interaction prototype; the baseline remains unchanged.
+
+## Final refinement of this round: connected desktop
+
+The isolated shrinking rectangles were rejected. Study 13 now fills each occupied reservation completely, with zero gutters and square meeting corners. Each neighborhood has three independently sized row pairs: cursor motion resizes a shared vertical edge and a nearby horizontal edge. Neighbors gain exactly the area others relinquish. Other row widths and distant neighborhoods stay unchanged. Four unoccupied cells provide the only whitespace, and windows continue moving into those vacancies after their floating entrance. Shared geometry is held fixed during travel so a resizing destination cannot invalidate a move. The contact/minimum-size test replaces the discarded independent-size test.

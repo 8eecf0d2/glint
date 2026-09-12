@@ -10,8 +10,8 @@ export const motionStudies = [
   { name: "Quiet choreography", hint: "Watch the slower sequence: divide, expand, balance, reset.", idea: "More intention and breathing room in the existing motion." },
   { name: "Reveal lens", hint: "Move over the blurred background to uncover the windows underneath.", idea: "A local clearing in the existing blur; nothing shifts or changes color." },
   { name: "Cursor-connected", hint: "Move left and right. The divider follows your exact position, within minimum window sizes.", idea: "Continuous shared resizing without percentage steps or waiting for a beat." },
-  { name: "Traveling sheen", hint: "Move near a window. A tapered glint travels around its edge.", idea: "A moving reflection with a bright head and fading tail, not a full border." },
-  { name: "Living seams", hint: "Move in both directions. Widths and heights follow you while a sheen runs along nearby edges.", idea: "Continuous two-axis resizing paired with an edge reflection." },
+  { name: "Outline sheen", hint: "Move near a window. Its outline softly catches light nearest the cursor.", idea: "A restrained pointer-lit outline with no running trace." },
+  { name: "Connected desktop", hint: "Windows float in, then meet edge-to-edge. Move near them to resize shared edges; empty areas invite new moves.", idea: "Varied adjoining windows, local shared resizing and ongoing vacancy moves. No sheen." },
 ] as const;
 
 export function studyFromSearch(search: string): number {
