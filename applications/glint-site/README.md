@@ -4,9 +4,11 @@ Minimal single-viewport marketing site built with React 19, TypeScript, Vite 7 a
 
 The site imports the approved canonical `brand/Glint.icon/Assets/mark.svg`; GLNT-23 is complete.
 
-The background opens with five varied windows floating around the center, then settles into six adjoining regions with one vacancy. Windows periodically move into that vacancy, resizing and translating in one transition to fill their destination on arrival. Each row has its own continuously adjustable width split; nearby rows share height boundaries. Cursor input remains active during moves. Gaps are 10 CSS pixels and corners are 12 CSS pixels. A fixed rounded mesh updates in place during resizing.
+The intro begins white, brings in five scattered grey windows in four tones, then reveals the canonical logo. A highlight is painted directly into its star paths while the stars breathe independently. The windows snap together at 1.45 seconds; page copy and controls arrive in a stagger starting at 2.55 seconds. The renderer cues the page reveal, with a fallback to keep content accessible if WebGL fails.
 
-The hero stays still. Mouse interaction requires a fine hovering pointer; reduced motion shows a static composition, and hidden tabs suspend animation. Compact screens show two windows. Shared layout constraints preserve minimum sizes and separation while settled; moving windows may cross others during transit. This is illustrative marketing behavior, not an assertion that the native app automatically resizes its neighbors.
+Windows settle into six adjoining regions with one vacancy, then periodically change shared proportions in eighth increments and move into the vacancy. Translation and resizing finish together. Cursor input adjusts nearby widths and shared height boundaries; after it rests, autonomous movement resumes. Gaps are 10 CSS pixels and corners are 12 CSS pixels. A fixed rounded mesh updates in place during resizing.
+
+Reduced motion shows content and a static composition immediately, and hidden tabs suspend rendering. Compact screens show two windows. Moving windows may cross others during transit. This is illustrative marketing behavior, not an assertion that the native app automatically resizes its neighbors.
 
 Run `node --test applications/glint-site/tests/windowLayout.test.mjs` to check layouts, vacancies and rounded-mesh resizing. The final animation is used in development and production. There are no variation routes or experiment controls.
 

@@ -65,7 +65,7 @@ function easeOutCubic(value: number) {
   return 1 - Math.pow(1 - value, 3);
 }
 
-export function SpatialWindows() {
+export function SpatialWindows({ onPhase }: { onPhase: (phase: number) => void }) {
   const mountRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const mount = mountRef.current;
@@ -73,13 +73,20 @@ export function SpatialWindows() {
     const motionPreference = window.matchMedia("(prefers-reduced-motion: reduce)");
     const pointerPreference = window.matchMedia("(hover: hover) and (pointer: fine)");
     const pointer = { x: 0, y: 0, active: false, hovered: -1 };
-    let seed = 271828;
+    let seed = crypto.getRandomValues(new Uint32Array(1))[0]!;
     const random = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
     const layout = initialLooseLayout(random);
+    const rowOptions = [[0.25, 0.625], [0.375, 0.75], [0.25, 0.75], [0.375, 0.625]];
+    const splitOptions = [0.25, 0.375, 0.625, 0.75];
+    const entranceDelays = [160, 0, 290, 80, 380];
+    layout.rows = rowOptions[Math.floor(random() * rowOptions.length)]!.slice();
+    layout.columns = layout.columns.map(() => splitOptions[Math.floor(random() * splitOptions.length)]!);
     const mobileLayout = initialLayout();
     const initialSlots = [0, 1, 2, 4, 5];
     let localBand = 0;
     let clock = 0;
+    let phase = 0;
+    let lastPointerAt = -Infinity;
     let lastTime = 0;
     let nextMoveAt = Infinity;
     let frame = 0;
@@ -96,19 +103,20 @@ export function SpatialWindows() {
     let renderer: WebGLRenderer;
     try {
       renderer = new WebGLRenderer({ alpha: true, antialias: true, powerPreference: "low-power" });
-    } catch { return; }
+    } catch { onPhase(4); return; }
     renderer.setClearColor(0xffffff, 0);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     renderer.domElement.setAttribute("aria-hidden", "true");
     renderer.domElement.tabIndex = -1;
     mount.appendChild(renderer.domElement);
     const scatter = Array.from({ length: 5 }, () => ({
-      x: 0.3 + random() * 0.4, y: 0.34 + random() * 0.32,
+      x: 0.14 + random() * 0.72, y: 0.12 + random() * 0.76,
       width: 0.18 + random() * 0.17, height: 0.32 + random() * 0.2,
     }));
     const states: WindowState[] = initialSlots.map((slot, id) => {
       const shape = createWindow();
-      shape.materials.forEach((material) => { material.opacity = 1; });
+      (shape.fill.material as MeshBasicMaterial).color.setHex([0xe6e6e6, 0xf2f2f2, 0xdcdcdc, 0xebebeb][id % 4]!);
+      shape.materials.forEach((material) => { material.opacity = introPending ? 0 : 0.55; });
       shape.group.position.z = id * 0.03;
       scene.add(shape.group);
       const rect = { x: 0, y: 0, width: 1, height: 1 };
@@ -161,10 +169,19 @@ export function SpatialWindows() {
     };
     const beginOpening = () => {
       introPending = false;
-      visible().forEach((state) => beginMove(state,
-        (Math.floor(state.id / 2) * 0.38 + (state.id % 2) * 0.14) * 1000));
+      visible().forEach((state) => beginMove(state, [40, 0, 85, 20, 65][state.id]));
     };
     const relocate = () => {
+      // Change shared partitions before travel: every window arrives already fitted.
+      if (clock - lastPointerAt > 1800) {
+        if (compact) mobileLayout.rows = [0.375, 0.5, 0.625][Math.floor(random() * 3)]!;
+        else {
+          const band = Math.floor(random() * 3);
+          layout.columns[band] = splitOptions[Math.floor(random() * splitOptions.length)]!;
+          layout.rows = rowOptions[Math.floor(random() * rowOptions.length)]!.slice();
+        }
+        visible().forEach((state) => beginMove(state));
+      }
       const owners = visible().map(({ id, slot }) => ({ id, slot }));
       const vacancies = Array.from({ length: compact ? 2 : 6 }, (_, slot) => slot)
         .filter((slot) => !owners.some((owner) => owner.slot === slot));
@@ -185,6 +202,13 @@ export function SpatialWindows() {
       const elapsed = lastTime ? Math.min(timestamp - lastTime, 50) : 16;
       lastTime = timestamp;
       clock += elapsed;
+      const nextPhase = clock < 220 ? 0 : clock < 900 ? 1 : clock < 1450 ? 2 : clock < 2550 ? 3 : 4;
+      if (nextPhase > phase) { phase = nextPhase; onPhase(phase); }
+      const soften = Math.min(Math.max((clock - 2450) / 900, 0), 1);
+      visible().forEach((state) => {
+        const entrance = Math.min(Math.max((clock - 240 - entranceDelays[state.id]!) / 420, 0), 1);
+        state.materials.forEach((material) => { material.opacity = easeOutCubic(entrance) * (1 - soften * 0.45); });
+      });
       if (clock >= nextMoveAt) {
         nextMoveAt = Infinity;
         if (introPending) beginOpening(); else relocate();
@@ -192,16 +216,19 @@ export function SpatialWindows() {
       if (introPending) {
         visible().forEach((state) => {
           const phase = state.id * 1.7;
+          const arriving = 1 - easeOutCubic(Math.min(Math.max((clock - 240 - entranceDelays[state.id]!) / 600, 0), 1));
           state.currentRect = { ...state.fromRect,
-            x: state.fromRect.x + Math.sin(clock / 1000 * 1.05 + phase) * 0.045,
-            y: state.fromRect.y + Math.sin(clock / 1000 * 1.3 + phase) * 0.085 };
+            x: state.fromRect.x + Math.sin(clock / 1000 * 1.05 + phase) * 0.045
+              + (state.id % 2 ? -1 : 1) * arriving * viewportWidth * 0.15,
+            y: state.fromRect.y + Math.sin(clock / 1000 * 1.3 + phase) * 0.085
+              - arriving * 1.2 };
           state.group.rotation.z = Math.sin(clock / 1000 * 0.8 + phase) * 0.012;
           setWindowRect(state, state.currentRect);
         });
       } else {
         // Input is never gated on travel. Shared layout and moving destinations
         // update in the same frame; translation and size finish together.
-        if (pointer.active) {
+        if (pointer.active && clock > 3300 && clock - lastPointerAt < 1800) {
           const x = (pointer.x + viewportWidth / 2 - 0.22) / (viewportWidth - 0.44);
           const y = normalizedPointerY();
           const follow = 1 - Math.exp(-elapsed / 1000 * 26);
@@ -220,7 +247,7 @@ export function SpatialWindows() {
           } else state.currentRect = state.targetRect;
           setWindowRect(state, state.currentRect);
         });
-        if (hadMovement && !states.some((state) => state.moving)) nextMoveAt = clock + 1000 + random() * 900;
+        if (hadMovement && !states.some((state) => state.moving)) nextMoveAt = clock + 2300 + random() * 1600;
       }
       render();
       frame = window.requestAnimationFrame(animate);
@@ -233,6 +260,7 @@ export function SpatialWindows() {
       pointer.x = ((event.clientX - bounds.left) / bounds.width - 0.5) * viewportWidth;
       pointer.y = (0.5 - (event.clientY - bounds.top) / bounds.height) * viewportHeight;
       pointer.active = true;
+      lastPointerAt = clock;
       if (!compact) {
         const y = normalizedPointerY();
         const cuts = layout.rows;
@@ -246,9 +274,9 @@ export function SpatialWindows() {
     };
     const restart = () => {
       cancel(); resetPointer();
-      if (motionPreference.matches) introPending = false;
+      if (motionPreference.matches) { introPending = false; onPhase(4); states.forEach((state) => state.materials.forEach((material) => { material.opacity = 0.55; })); }
       settle(); render(); lastTime = 0;
-      if (canAnimate()) { nextMoveAt = clock + (introPending ? 1450 : 850); frame = window.requestAnimationFrame(animate); }
+      if (canAnimate()) { nextMoveAt = introPending ? 1450 : clock + 2800; frame = window.requestAnimationFrame(animate); }
     };
     const resize = () => {
       const width = Math.max(mount.clientWidth, 1);
@@ -286,6 +314,6 @@ export function SpatialWindows() {
       });
       renderer.dispose(); mount.removeChild(renderer.domElement);
     };
-  }, []);
+  }, [onPhase]);
   return <div className="spatial-background" ref={mountRef} aria-hidden="true" />;
 }
