@@ -8,17 +8,22 @@ const SpatialWindows = lazy(() =>
   import("./SpatialWindows").then((module) => ({ default: module.SpatialWindows })),
 );
 
-// Paint the highlight inside the canonical paths, including their individual motion.
+// Light a bevel derived from the canonical shapes, then clip it to their inner edges.
 const animatedMark = glintMarkSource
-  .replace(/<path[\s\S]*?\/>/g, (path) => `<g class="mark-star">${path}${path.replace("<path", '<path fill="url(#mark-shine)"')}</g>`)
+  .replace(/<path[\s\S]*?\/>/g, (path) => `<g class="mark-star">${path}${path.replace("<path", '<path class="mark-reflection" fill="white" filter="url(#mark-glass)"')}</g>`)
   .replace("<title>", `<defs>
-    <linearGradient id="mark-shine" gradientUnits="userSpaceOnUse" x1="-1024" y1="0" x2="0" y2="180">
-      <stop offset="0.35" stop-color="white" stop-opacity="0" />
-      <stop offset="0.5" stop-color="white" stop-opacity="0.9" />
-      <stop offset="0.65" stop-color="white" stop-opacity="0" />
-      <animate attributeName="x1" from="-1024" to="1024" dur="1.05s" begin="indefinite" fill="freeze" />
-      <animate attributeName="x2" from="0" to="2048" dur="1.05s" begin="indefinite" fill="freeze" />
-    </linearGradient>
+    <filter id="mark-glass" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="7" result="bevel" />
+      <feSpecularLighting in="bevel" surfaceScale="18" specularConstant="2.2" specularExponent="16" lighting-color="white" result="reflection">
+        <fePointLight x="-400" y="-300" z="240">
+          <animate attributeName="x" values="-400;400;1300;500;1400" keyTimes="0;0.3;0.48;0.78;1" dur="2.35s" begin="indefinite" fill="freeze" />
+          <animate attributeName="y" values="-300;0;700;1100;300" keyTimes="0;0.3;0.48;0.78;1" dur="2.35s" begin="indefinite" fill="freeze" />
+        </fePointLight>
+      </feSpecularLighting>
+      <feMorphology in="SourceAlpha" operator="erode" radius="14" result="interior" />
+      <feComposite in="SourceAlpha" in2="interior" operator="out" result="rim" />
+      <feComposite in="reflection" in2="rim" operator="in" />
+    </filter>
   </defs><title>`);
 
 function App() {
@@ -29,19 +34,18 @@ function App() {
     if (logoVisible && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       const glint = () => markRef.current?.querySelectorAll("animate").forEach((animation) => animation.beginElement());
       const first = window.setTimeout(glint, 170);
-      const second = window.setTimeout(glint, 1330);
-      return () => { window.clearTimeout(first); window.clearTimeout(second); };
+      return () => window.clearTimeout(first);
     }
   }, [logoVisible]);
   const advance = useCallback((next: number) => setPhase((current) => Math.max(current, next)), []);
   useEffect(() => {
     // Content must remain available if the lazy renderer cannot load.
-    const fallback = window.setTimeout(() => advance(4), 4500);
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) advance(4);
+    const fallback = window.setTimeout(() => advance(5), 7000);
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) advance(5);
     return () => window.clearTimeout(fallback);
   }, [advance]);
   return (
-    <main className={`page ${phase >= 2 ? "logo-visible" : ""} ${phase >= 4 ? "content-visible" : ""}`}>
+    <main className={`page ${phase >= 2 ? "logo-visible" : ""} ${phase >= 4 ? "logo-docked" : ""} ${phase >= 5 ? "content-visible" : ""}`}>
       <Suspense fallback={null}>
         <SpatialWindows onPhase={advance} />
       </Suspense>

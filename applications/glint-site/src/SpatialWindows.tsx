@@ -103,7 +103,7 @@ export function SpatialWindows({ onPhase }: { onPhase: (phase: number) => void }
     let renderer: WebGLRenderer;
     try {
       renderer = new WebGLRenderer({ alpha: true, antialias: true, powerPreference: "low-power" });
-    } catch { onPhase(4); return; }
+    } catch { onPhase(5); return; }
     renderer.setClearColor(0xffffff, 0);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     renderer.domElement.setAttribute("aria-hidden", "true");
@@ -224,9 +224,9 @@ export function SpatialWindows({ onPhase }: { onPhase: (phase: number) => void }
       const elapsed = lastTime ? Math.min(timestamp - lastTime, 50) : 16;
       lastTime = timestamp;
       clock += elapsed;
-      const nextPhase = clock < 220 ? 0 : clock < 1120 ? 1 : clock < 2670 ? 2 : clock < 3380 ? 3 : 4;
+      const nextPhase = clock < 220 ? 0 : clock < 1120 ? 1 : clock < 2670 ? 2 : clock < 4450 ? 3 : clock < 5100 ? 4 : 5;
       if (nextPhase > phase) { phase = nextPhase; onPhase(phase); }
-      const soften = Math.min(Math.max((clock - 3190) / 900, 0), 1);
+      const soften = Math.min(Math.max((clock - 4900) / 900, 0), 1);
       visible().forEach((state) => {
         const entrance = Math.min(Math.max((clock - 240 - entranceDelays[state.id]!) / 420, 0), 1);
         state.materials.forEach((material) => { material.opacity = easeOutCubic(entrance) * (1 - soften * 0.45); });
@@ -250,7 +250,7 @@ export function SpatialWindows({ onPhase }: { onPhase: (phase: number) => void }
       } else {
         // Input is never gated on travel. Shared layout and moving destinations
         // update in the same frame; translation and size finish together.
-        if (pointer.active && clock > 4300 && clock - lastPointerAt < 1800) {
+        if (pointer.active && clock > 5700 && clock - lastPointerAt < 1800) {
           const x = (pointer.x + viewportWidth / 2 - 0.22) / (viewportWidth - 0.44);
           const y = normalizedPointerY();
           const follow = 1 - Math.exp(-elapsed / 1000 * 26);
@@ -296,7 +296,7 @@ export function SpatialWindows({ onPhase }: { onPhase: (phase: number) => void }
     };
     const restart = () => {
       cancel(); resetPointer();
-      if (motionPreference.matches) { introPending = false; onPhase(4); states.forEach((state) => state.materials.forEach((material) => { material.opacity = 0.55; })); }
+      if (motionPreference.matches) { introPending = false; onPhase(5); states.forEach((state) => state.materials.forEach((material) => { material.opacity = 0.55; })); }
       settle(); render(); lastTime = 0;
       if (canAnimate()) { nextMoveAt = introPending ? 2670 : clock + 2800; frame = window.requestAnimationFrame(animate); }
     };

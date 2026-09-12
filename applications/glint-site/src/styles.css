@@ -121,9 +121,12 @@ footer a:hover { color: #171a1f; text-decoration-color: currentColor; }
 .hero-mark { position: relative; opacity: 0; transform: translateY(100px) scale(0.9); }
 .mark-art { position: absolute; inset: 0; }
 .mark-art svg { display: block; width: 100%; height: 100%; }
+.mark-reflection { opacity: 0; }
+.logo-visible .mark-reflection { animation: edge-light 2.52s 0.17s ease-in-out both; }
 .mark-star { transform-box: fill-box; transform-origin: center; }
-.logo-visible .hero-mark { animation: mark-arrive 2.25s linear both; }
-.logo-visible .mark-art { animation: mark-float 5s 2.25s ease-in-out infinite; }
+.logo-visible .hero-mark { animation: mark-arrive 0.32s linear both; }
+.logo-docked .hero-mark { animation: mark-dock 0.65s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.logo-docked .mark-art { animation: mark-float 5s 0.65s ease-in-out infinite; }
 .logo-visible .mark-star { animation: star-breathe 1.18s 0.08s ease-in-out 2 both; }
 .logo-visible .mark-star:nth-child(2) { animation-delay: 0.19s; }
 .logo-visible .mark-star:nth-child(3) { animation-delay: 0.27s; }
@@ -143,10 +146,16 @@ footer a:hover { color: #171a1f; text-decoration-color: currentColor; }
 .content-visible .hero-blur { opacity: 1; }
 @keyframes mark-arrive {
   0% { opacity: 0; transform: translateY(100px) scale(0.3); animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1); }
-  7% { opacity: 1; transform: translateY(100px) scale(1.2); animation-timing-function: ease-out; }
-  13% { opacity: 1; transform: translateY(100px) scale(1.06); }
-  68% { opacity: 1; transform: translateY(96px) scale(1.08); animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
+  48% { opacity: 1; transform: translateY(100px) scale(1.2); animation-timing-function: ease-out; }
+  100% { opacity: 1; transform: translateY(100px) scale(1.06); }
+}
+@keyframes mark-dock {
+  from { opacity: 1; transform: translateY(100px) scale(1.06); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes edge-light {
+  0%, 100% { opacity: 0; }
+  12%, 85% { opacity: 1; }
 }
 @keyframes star-breathe { 0%, 100% { transform: scale(1); } 40% { transform: scale(1.085); } }
 @keyframes mark-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
@@ -156,6 +165,6 @@ footer a:hover { color: #171a1f; text-decoration-color: currentColor; }
 }
 @media (prefers-reduced-motion: reduce) {
   .hero-mark, .hero h1, .subtitle, .actions, footer { opacity: 1; visibility: visible; transform: none; animation: none !important; }
-  .mark-art, .mark-star { animation: none !important; }
+  .mark-art, .mark-star, .mark-reflection { animation: none !important; }
   .hero-blur { opacity: 1; transition: none; }
 }
