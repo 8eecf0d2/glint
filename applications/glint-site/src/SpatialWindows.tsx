@@ -224,9 +224,9 @@ export function SpatialWindows({ onPhase }: { onPhase: (phase: number) => void }
       const elapsed = lastTime ? Math.min(timestamp - lastTime, 50) : 16;
       lastTime = timestamp;
       clock += elapsed;
-      const nextPhase = clock < 220 ? 0 : clock < 1120 ? 1 : clock < 2670 ? 2 : clock < 4450 ? 3 : clock < 4850 ? 4 : 5;
+      const nextPhase = clock < 220 ? 0 : clock < 1120 ? 1 : clock < 1500 ? 2 : clock < 3000 ? 3 : clock < 3480 ? 4 : 5;
       if (nextPhase > phase) { phase = nextPhase; onPhase(phase); }
-      const soften = Math.min(Math.max((clock - 4650) / 900, 0), 1);
+      const soften = Math.min(Math.max((clock - 3280) / 900, 0), 1);
       visible().forEach((state) => {
         const entrance = Math.min(Math.max((clock - 240 - entranceDelays[state.id]!) / 420, 0), 1);
         state.materials.forEach((material) => { material.opacity = easeOutCubic(entrance) * (1 - soften * 0.45); });
@@ -250,7 +250,7 @@ export function SpatialWindows({ onPhase }: { onPhase: (phase: number) => void }
       } else {
         // Input is never gated on travel. Shared layout and moving destinations
         // update in the same frame; translation and size finish together.
-        if (pointer.active && clock > 5700 && clock - lastPointerAt < 1800) {
+        if (pointer.active && clock > 4200 && clock - lastPointerAt < 1800) {
           const x = (pointer.x + viewportWidth / 2 - 0.22) / (viewportWidth - 0.44);
           const y = normalizedPointerY();
           const follow = 1 - Math.exp(-elapsed / 1000 * 26);
@@ -298,7 +298,7 @@ export function SpatialWindows({ onPhase }: { onPhase: (phase: number) => void }
       cancel(); resetPointer();
       if (motionPreference.matches) { introPending = false; onPhase(5); states.forEach((state) => state.materials.forEach((material) => { material.opacity = 0.55; })); }
       settle(); render(); lastTime = 0;
-      if (canAnimate()) { nextMoveAt = introPending ? 2670 : clock + 2800; frame = window.requestAnimationFrame(animate); }
+      if (canAnimate()) { nextMoveAt = introPending ? 1500 : clock + 2800; frame = window.requestAnimationFrame(animate); }
     };
     const resize = () => {
       const width = Math.max(mount.clientWidth, 1);

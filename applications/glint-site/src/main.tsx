@@ -32,7 +32,7 @@ function App() {
         <div className="hero-mark" aria-hidden="true">
           <img className="mark-art" src={glintMark} alt="" />
           <div className="mark-metal">
-            <Suspense fallback={null}><MetalMark active={phase >= 2 && phase < 4} /></Suspense>
+            <Suspense fallback={null}><MetalMark active={phase >= 2} settled={phase >= 4} /></Suspense>
           </div>
         </div>
         <h1 id="hero-title">Make some room.</h1>

@@ -4,7 +4,7 @@ import glintMark from "../../../brand/Glint.icon/Assets/mark.svg?url";
 
 // Paper's original liquid-metal shader, with restrained monochrome settings.
 // https://shaders.paper.design/liquid-metal
-export function MetalMark({ active }: { active: boolean }) {
+export function MetalMark({ active, settled }: { active: boolean; settled: boolean }) {
   const [canAnimate, setCanAnimate] = useState(false);
   useEffect(() => {
     const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -28,7 +28,7 @@ export function MetalMark({ active }: { active: boolean }) {
     distortion={0.07}
     contour={0.4}
     angle={70}
-    speed={active && canAnimate ? 1 : 0}
+    speed={active && canAnimate ? (settled ? 0.18 : 1) : 0}
     frame={800}
     scale={1}
     fit="contain"
