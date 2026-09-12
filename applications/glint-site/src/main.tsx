@@ -30,7 +30,6 @@ function App() {
       <div className="hero-blur" aria-hidden="true" />
       <section className="hero" aria-labelledby="hero-title">
         <div className="hero-mark" aria-hidden="true">
-          <div className="impact-ripple" />
           <img className="mark-art" src={glintMark} alt="" />
           <div className="mark-metal">
             <Suspense fallback={null}><MetalMark active={phase >= 2} settled={phase >= 4} /></Suspense>

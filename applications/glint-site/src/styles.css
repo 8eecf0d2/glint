@@ -141,24 +141,6 @@ footer a:hover { color: #171a1f; text-decoration-color: currentColor; }
 .logo-impact .spatial-background,
 .logo-impact .ambient-mesh,
 .logo-impact .hero { animation: impact-settle 0.32s linear both; }
-.impact-ripple {
-  position: absolute;
-  z-index: -1;
-  left: 50%;
-  top: 50%;
-  width: clamp(420px, 76vw, 1000px);
-  aspect-ratio: 1;
-  border-radius: 50%;
-  pointer-events: none;
-  opacity: 0;
-  transform: translate(-50%, -50%) scale(0.08);
-  background: radial-gradient(closest-side, transparent 61%, rgb(255 255 255 / 85%) 66%, rgb(110 120 135 / 16%) 69%, transparent 75%);
-  -webkit-backdrop-filter: blur(1.5px);
-  backdrop-filter: blur(1.5px);
-  -webkit-mask-image: radial-gradient(closest-side, transparent 59%, #000 64%, #000 73%, transparent 77%);
-  mask-image: radial-gradient(closest-side, transparent 59%, #000 64%, #000 73%, transparent 77%);
-}
-.logo-impact .impact-ripple { animation: impact-ripple 0.55s cubic-bezier(0.16, 0.6, 0.3, 1) both; }
 .logo-docked .hero-mark { animation: mark-dock 0.85s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .hero h1, .subtitle, .actions, footer {
   opacity: 0;
@@ -187,12 +169,6 @@ footer a:hover { color: #171a1f; text-decoration-color: currentColor; }
   78% { transform: translate(0, -0.4px); }
   100% { transform: translate(0, 0); }
 }
-@keyframes impact-ripple {
-  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.08); }
-  12% { opacity: 0.18; }
-  50% { opacity: 0.05; }
-  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.35); }
-}
 @keyframes mark-dock {
   from { opacity: 1; transform: translateY(100px) scale(1); }
   to { opacity: 1; transform: translateY(0) scale(1); }
@@ -208,6 +184,6 @@ footer a:hover { color: #171a1f; text-decoration-color: currentColor; }
 }
 @media (prefers-reduced-motion: reduce) {
   .hero-mark, .hero h1, .subtitle, .actions, footer { opacity: 1; visibility: visible; transform: none; animation: none !important; }
-  .mark-art, .mark-metal, .spatial-background, .ambient-mesh, .hero, .impact-ripple { animation: none !important; }
+  .mark-art, .mark-metal, .spatial-background, .ambient-mesh, .hero { animation: none !important; }
   .hero-blur { opacity: 1; transition: none; }
 }
