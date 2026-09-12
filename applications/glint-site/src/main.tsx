@@ -16,8 +16,8 @@ const animatedMark = glintMarkSource
       <stop offset="0.35" stop-color="white" stop-opacity="0" />
       <stop offset="0.5" stop-color="white" stop-opacity="0.9" />
       <stop offset="0.65" stop-color="white" stop-opacity="0" />
-      <animate attributeName="x1" from="-1024" to="1024" dur="0.85s" begin="indefinite" fill="freeze" />
-      <animate attributeName="x2" from="0" to="2048" dur="0.85s" begin="indefinite" fill="freeze" />
+      <animate attributeName="x1" from="-1024" to="1024" dur="1.05s" begin="indefinite" fill="freeze" />
+      <animate attributeName="x2" from="0" to="2048" dur="1.05s" begin="indefinite" fill="freeze" />
     </linearGradient>
   </defs><title>`);
 
@@ -27,7 +27,10 @@ function App() {
   const logoVisible = phase >= 2;
   useEffect(() => {
     if (logoVisible && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      markRef.current?.querySelectorAll("animate").forEach((animation) => animation.beginElement());
+      const glint = () => markRef.current?.querySelectorAll("animate").forEach((animation) => animation.beginElement());
+      const first = window.setTimeout(glint, 170);
+      const second = window.setTimeout(glint, 1330);
+      return () => { window.clearTimeout(first); window.clearTimeout(second); };
     }
   }, [logoVisible]);
   const advance = useCallback((next: number) => setPhase((current) => Math.max(current, next)), []);

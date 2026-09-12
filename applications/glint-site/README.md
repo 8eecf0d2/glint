@@ -4,7 +4,7 @@ Minimal single-viewport marketing site built with React 19, TypeScript, Vite 7 a
 
 The site imports the approved canonical `brand/Glint.icon/Assets/mark.svg`; GLNT-23 is complete.
 
-The intro begins white, brings in five scattered grey windows in four tones, then reveals the canonical logo. A highlight is painted directly into its star paths while the stars breathe independently. The windows snap together at 1.45 seconds; page copy and controls arrive in a stagger starting at 2.55 seconds. The renderer cues the page reveal, with a fallback to keep content accessible if WebGL fails.
+The intro begins white, brings in five scattered grey windows in four tones, then reveals the canonical logo. The logo grows in sharply, pauses for two highlights painted directly into its star paths, then rises into place. The stars breathe independently. The windows snap into place with uneven delays starting at 2.67 seconds; page copy and controls arrive starting at 3.38 seconds. The renderer cues the page reveal, with a fallback to keep content accessible if WebGL fails.
 
 Windows settle into six adjoining regions with one vacancy, then periodically change shared proportions in eighth increments and move into the vacancy. Translation and resizing finish together. Cursor input adjusts nearby widths and shared height boundaries; after it rests, autonomous movement resumes. Gaps are 10 CSS pixels and corners are 12 CSS pixels. A fixed rounded mesh updates in place during resizing.
 

@@ -78,7 +78,7 @@ export function SpatialWindows({ onPhase }: { onPhase: (phase: number) => void }
     const layout = initialLooseLayout(random);
     const rowOptions = [[0.25, 0.625], [0.375, 0.75], [0.25, 0.75], [0.375, 0.625]];
     const splitOptions = [0.25, 0.375, 0.625, 0.75];
-    const entranceDelays = [160, 0, 290, 80, 380];
+    const entranceDelays = Array.from({ length: 5 }, () => Math.floor(random() * 460));
     layout.rows = rowOptions[Math.floor(random() * rowOptions.length)]!.slice();
     layout.columns = layout.columns.map(() => splitOptions[Math.floor(random() * splitOptions.length)]!);
     const mobileLayout = initialLayout();
@@ -111,7 +111,7 @@ export function SpatialWindows({ onPhase }: { onPhase: (phase: number) => void }
     mount.appendChild(renderer.domElement);
     const scatter = Array.from({ length: 5 }, () => ({
       x: 0.14 + random() * 0.72, y: 0.12 + random() * 0.76,
-      width: 0.18 + random() * 0.17, height: 0.32 + random() * 0.2,
+      width: 0.3 + random() * 0.2, height: 0.42 + random() * 0.23,
     }));
     const states: WindowState[] = initialSlots.map((slot, id) => {
       const shape = createWindow();
@@ -152,7 +152,7 @@ export function SpatialWindows({ onPhase }: { onPhase: (phase: number) => void }
         state.currentRect = introPending ? {
           x: (compact ? (state.id % 2 === 0 ? -0.08 : 0.08) : messy.x - 0.5) * viewportWidth,
           y: (compact ? (state.id % 2 === 0 ? 0.18 : -0.15) : 0.5 - messy.y) * viewportHeight,
-          width: viewportWidth * (compact ? 0.78 : messy.width), height: viewportHeight * messy.height,
+          width: viewportWidth * (compact ? 0.85 + messy.width * 0.15 : messy.width), height: viewportHeight * messy.height,
         } : resolveRect(state);
         state.fromRect = { ...state.currentRect };
         state.targetRect = { ...state.currentRect };
@@ -169,7 +169,7 @@ export function SpatialWindows({ onPhase }: { onPhase: (phase: number) => void }
     };
     const beginOpening = () => {
       introPending = false;
-      visible().forEach((state) => beginMove(state, [40, 0, 85, 20, 65][state.id]));
+      visible().forEach((state) => beginMove(state, [0, 170, 35, 280, 65][state.id]));
     };
     const relocate = () => {
       // Change shared partitions before travel: every window arrives already fitted.
@@ -202,9 +202,9 @@ export function SpatialWindows({ onPhase }: { onPhase: (phase: number) => void }
       const elapsed = lastTime ? Math.min(timestamp - lastTime, 50) : 16;
       lastTime = timestamp;
       clock += elapsed;
-      const nextPhase = clock < 220 ? 0 : clock < 900 ? 1 : clock < 1450 ? 2 : clock < 2550 ? 3 : 4;
+      const nextPhase = clock < 220 ? 0 : clock < 1120 ? 1 : clock < 2670 ? 2 : clock < 3380 ? 3 : 4;
       if (nextPhase > phase) { phase = nextPhase; onPhase(phase); }
-      const soften = Math.min(Math.max((clock - 2450) / 900, 0), 1);
+      const soften = Math.min(Math.max((clock - 3190) / 900, 0), 1);
       visible().forEach((state) => {
         const entrance = Math.min(Math.max((clock - 240 - entranceDelays[state.id]!) / 420, 0), 1);
         state.materials.forEach((material) => { material.opacity = easeOutCubic(entrance) * (1 - soften * 0.45); });
@@ -228,7 +228,7 @@ export function SpatialWindows({ onPhase }: { onPhase: (phase: number) => void }
       } else {
         // Input is never gated on travel. Shared layout and moving destinations
         // update in the same frame; translation and size finish together.
-        if (pointer.active && clock > 3300 && clock - lastPointerAt < 1800) {
+        if (pointer.active && clock > 4300 && clock - lastPointerAt < 1800) {
           const x = (pointer.x + viewportWidth / 2 - 0.22) / (viewportWidth - 0.44);
           const y = normalizedPointerY();
           const follow = 1 - Math.exp(-elapsed / 1000 * 26);
@@ -276,7 +276,7 @@ export function SpatialWindows({ onPhase }: { onPhase: (phase: number) => void }
       cancel(); resetPointer();
       if (motionPreference.matches) { introPending = false; onPhase(4); states.forEach((state) => state.materials.forEach((material) => { material.opacity = 0.55; })); }
       settle(); render(); lastTime = 0;
-      if (canAnimate()) { nextMoveAt = introPending ? 1450 : clock + 2800; frame = window.requestAnimationFrame(animate); }
+      if (canAnimate()) { nextMoveAt = introPending ? 2670 : clock + 2800; frame = window.requestAnimationFrame(animate); }
     };
     const resize = () => {
       const width = Math.max(mount.clientWidth, 1);
