@@ -142,6 +142,21 @@ export function SpatialWindows({ onPhase }: { onPhase: (phase: number) => void }
         y: viewportHeight / 2 - 0.22 - (slot.y + slot.height / 2) * height,
         width: slot.width * width - gap, height: slot.height * height - gap };
     };
+    const containOpening = (rect: WindowRect): WindowRect => {
+      const margin = Math.min(16 * viewportHeight / viewportPixelHeight, viewportWidth * 0.08, viewportHeight * 0.08);
+      const availableWidth = viewportWidth - margin * 2;
+      const availableHeight = viewportHeight - margin * 2;
+      // Include the full floating rotation envelope, not just the unrotated edges.
+      const rotation = 0.012;
+      const scale = Math.min(1, availableWidth / (rect.width + rect.height * rotation),
+        availableHeight / (rect.height + rect.width * rotation));
+      const width = rect.width * scale;
+      const height = rect.height * scale;
+      const limitX = Math.max(0, (availableWidth - width - height * rotation) / 2);
+      const limitY = Math.max(0, (availableHeight - height - width * rotation) / 2);
+      return { width, height, x: Math.max(-limitX, Math.min(limitX, rect.x)),
+        y: Math.max(-limitY, Math.min(limitY, rect.y)) };
+    };
     const normalizedPointerY = () => (viewportHeight / 2 - 0.22 - pointer.y)
       / (viewportHeight - 0.22 + 5 * viewportHeight / viewportPixelHeight);
     const resetPointer = () => { pointer.active = false; pointer.hovered = -1; };
@@ -156,11 +171,11 @@ export function SpatialWindows({ onPhase }: { onPhase: (phase: number) => void }
         state.group.rotation.z = 0;
         const messy = scatter[state.id]!;
         const openingWidth = Math.min(viewportWidth * (compact ? 0.88 : messy.width), viewportHeight * 0.92);
-        state.currentRect = introPending ? {
+        state.currentRect = introPending ? containOpening({
           x: (compact ? (state.id % 2 === 0 ? -0.025 : 0.025) : messy.x - 0.5) * viewportWidth,
           y: (compact ? (state.id % 2 === 0 ? 0.08 : -0.08) : 0.5 - messy.y) * viewportHeight,
           width: openingWidth, height: openingWidth / messy.aspect,
-        } : resolveRect(state);
+        }) : resolveRect(state);
         state.fromRect = { ...state.currentRect };
         state.targetRect = { ...state.currentRect };
         state.moving = false;
@@ -224,11 +239,11 @@ export function SpatialWindows({ onPhase }: { onPhase: (phase: number) => void }
         visible().forEach((state) => {
           const phase = state.id * 1.7;
           const arriving = 1 - easeOutCubic(Math.min(Math.max((clock - 240 - entranceDelays[state.id]!) / 600, 0), 1));
-          state.currentRect = { ...state.fromRect,
+          state.currentRect = containOpening({ ...state.fromRect,
             x: state.fromRect.x + Math.sin(clock / 1000 * 1.05 + phase) * 0.045
               + (state.id % 2 ? -1 : 1) * arriving * viewportWidth * 0.15,
             y: state.fromRect.y + Math.sin(clock / 1000 * 1.3 + phase) * 0.085
-              - arriving * 1.2 };
+              - arriving * 1.2 });
           state.group.rotation.z = Math.sin(clock / 1000 * 0.8 + phase) * 0.012;
           setWindowRect(state, state.currentRect);
         });
