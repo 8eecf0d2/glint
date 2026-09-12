@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import React, { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { ArrowDownToLine } from "lucide-react";
 import glintMark from "../../../brand/Glint.icon/Assets/mark.svg?url";
@@ -12,7 +12,11 @@ const MetalMark = lazy(() => import("./MetalMark").then((module) => ({ default: 
 
 const AmbientMesh = lazy(() => import("./AmbientMesh").then((module) => ({ default: module.AmbientMesh })));
 
+const MetalSurface = lazy(() => import("./MetalSurface").then((module) => ({ default: module.MetalSurface })));
+
 function App() {
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const downloadRef = useRef<HTMLAnchorElement>(null);
   const [phase, setPhase] = useState(0);
   const advance = useCallback((next: number) => setPhase((current) => Math.max(current, next)), []);
   useEffect(() => {
@@ -35,14 +39,17 @@ function App() {
             <Suspense fallback={null}><MetalMark active={phase >= 2} settled={phase >= 4} /></Suspense>
           </div>
         </div>
-        <h1 id="hero-title">Make some room.</h1>
+        <h1 id="hero-title" ref={titleRef}><span data-metal-text>Make some room.</span>
+          <Suspense fallback={null}><MetalSurface hostRef={titleRef} kind="text" active={phase >= 5} /></Suspense>
+        </h1>
         <p className="subtitle">
           Glint moves and resizes windows with keyboard shortcuts, so there’s room for your terminal, agent, browser and whatever else you’ve got open.
         </p>
 
         <div className="actions">
-          <a className="download" href="https://github.com/8eecf0d2/glint/releases">
-            <span>Download Glint</span>
+          <a className="download" ref={downloadRef} href="https://github.com/8eecf0d2/glint/releases">
+            <Suspense fallback={null}><MetalSurface hostRef={downloadRef} kind="pill" active={phase >= 5} /></Suspense>
+            <span className="download-label">Download Glint</span>
             <ArrowDownToLine size={18} strokeWidth={1.8} aria-hidden="true" />
           </a>
         </div>
