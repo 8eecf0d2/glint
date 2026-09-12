@@ -10,6 +10,8 @@ const SpatialWindows = lazy(() =>
 
 const MetalMark = lazy(() => import("./MetalMark").then((module) => ({ default: module.MetalMark })));
 
+const AmbientMesh = lazy(() => import("./AmbientMesh").then((module) => ({ default: module.AmbientMesh })));
+
 function App() {
   const [phase, setPhase] = useState(0);
   const advance = useCallback((next: number) => setPhase((current) => Math.max(current, next)), []);
@@ -20,7 +22,8 @@ function App() {
     return () => window.clearTimeout(fallback);
   }, [advance]);
   return (
-    <main className={`page ${phase >= 2 ? "logo-visible" : ""} ${phase >= 4 ? "logo-docked" : ""} ${phase >= 5 ? "content-visible" : ""}`}>
+    <main className={`page ${phase >= 1 ? "background-visible" : ""} ${phase >= 2 ? "logo-visible" : ""} ${phase >= 4 ? "logo-docked" : ""} ${phase >= 5 ? "content-visible" : ""}`}>
+      <Suspense fallback={null}><AmbientMesh active={phase >= 1} /></Suspense>
       <Suspense fallback={null}>
         <SpatialWindows onPhase={advance} />
       </Suspense>
