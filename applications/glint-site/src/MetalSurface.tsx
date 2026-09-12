@@ -1,7 +1,7 @@
 import { useEffect, useState, type RefObject } from "react";
 import { LiquidMetal } from "@paper-design/shaders-react";
 
-type Props = { hostRef: RefObject<HTMLElement | null>; kind: "text" | "pill"; active: boolean };
+type Props = { hostRef: RefObject<HTMLElement | null>; kind: "pill"; active: boolean };
 
 export function MetalSurface({ hostRef, kind, active }: Props) {
   const [mask, setMask] = useState("");
@@ -15,7 +15,6 @@ export function MetalSurface({ hostRef, kind, active }: Props) {
     const updateMotion = () => setCanAnimate(!motion.matches && !document.hidden);
     const paint = () => {
       if (disposed) return;
-      const bounds = host.getBoundingClientRect();
       const width = host.clientWidth;
       const height = host.clientHeight;
       if (!width || !height) return;
@@ -26,33 +25,9 @@ export function MetalSurface({ hostRef, kind, active }: Props) {
       if (!ctx) return;
       ctx.scale(2, 2);
       ctx.fillStyle = "#000";
-      if (kind === "pill") {
-        ctx.beginPath();
-        ctx.roundRect(0, 0, width, height, height / 2);
-        ctx.fill();
-      } else {
-        const label = host.querySelector("[data-metal-text]");
-        const node = label?.firstChild;
-        if (!node || node.nodeType !== Node.TEXT_NODE) return;
-        const style = getComputedStyle(host);
-        ctx.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
-        ctx.letterSpacing = style.letterSpacing === "normal" ? "0px" : style.letterSpacing;
-        ctx.textBaseline = "alphabetic";
-        const ascent = ctx.measureText("Hg").fontBoundingBoxAscent;
-        const lines: { text: string; x: number; y: number }[] = [];
-        // Use the actual DOM line breaks and positions, including responsive wrapping.
-        const range = document.createRange();
-        const text = node.textContent ?? "";
-        for (let i = 0; i < text.length; i += 1) {
-          range.setStart(node, i);
-          range.setEnd(node, i + 1);
-          const rect = range.getBoundingClientRect();
-          const previous = lines.at(-1);
-          if (previous && Math.abs(previous.y - (rect.top - bounds.top)) < 1) previous.text += text[i];
-          else lines.push({ text: text[i]!, x: rect.left - bounds.left, y: rect.top - bounds.top });
-        }
-        lines.forEach((line) => ctx.fillText(line.text, line.x, line.y + ascent));
-      }
+      ctx.beginPath();
+      ctx.roundRect(0, 0, width, height, height / 2);
+      ctx.fill();
       setMask(canvas.toDataURL("image/png"));
     };
     const schedule = () => { if (disposed) return; cancelAnimationFrame(frame); frame = requestAnimationFrame(paint); };

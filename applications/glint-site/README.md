@@ -26,4 +26,4 @@ The sole Cloudflare Worker serves **glint.broderickwilkinson.com**. No staging, 
 
 The existing download link points to this repository's GitHub Releases and becomes public when the owner changes repository visibility at readiness.
 
-The headline and download button use the same slow Liquid Metal treatment at 28% and 26% opacity. Responsive masks follow the headline’s rendered font and wrapping and the button’s rounded background; original text and button contents remain intact. A 140ms contrast accent accompanies the impact shake and returns to normal immediately afterward.
+The download button uses the same slow Liquid Metal treatment at 12% opacity, clipped to its rounded background; its label and icon remain solid. The headline is plain text. A 140ms contrast accent accompanies the impact shake and returns to normal immediately afterward.

@@ -195,5 +195,5 @@ footer a:hover { color: #171a1f; text-decoration-color: currentColor; }
 #hero-title, .download { position: relative; }
 .surface-metal { position: absolute; inset: 0; display: block; pointer-events: none; opacity: 0.28; }
 .surface-metal canvas { display: block; }
-.surface-metal-pill { overflow: hidden; border-radius: inherit; opacity: 0.26; }
+.surface-metal-pill { overflow: hidden; border-radius: inherit; opacity: 0.12; }
 .download-label, .download > svg { position: relative; z-index: 1; }
