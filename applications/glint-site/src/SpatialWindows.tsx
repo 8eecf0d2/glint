@@ -109,9 +109,15 @@ export function SpatialWindows({ onPhase }: { onPhase: (phase: number) => void }
     renderer.domElement.setAttribute("aria-hidden", "true");
     renderer.domElement.tabIndex = -1;
     mount.appendChild(renderer.domElement);
-    const scatter = Array.from({ length: 5 }, () => ({
-      x: 0.14 + random() * 0.72, y: 0.12 + random() * 0.76,
-      width: 0.3 + random() * 0.2, height: 0.42 + random() * 0.23,
+    // Familiar overlapping desktop positions, with restrained per-load variation.
+    const anchors = [[0.34, 0.34], [0.62, 0.3], [0.65, 0.62], [0.36, 0.65], [0.5, 0.48]];
+    for (let i = anchors.length - 1; i > 0; i -= 1) {
+      const other = Math.floor(random() * (i + 1));
+      [anchors[i], anchors[other]] = [anchors[other]!, anchors[i]!];
+    }
+    const scatter = anchors.map(([x, y]) => ({
+      x: x! + (random() - 0.5) * 0.06, y: y! + (random() - 0.5) * 0.06,
+      width: 0.56 + random() * 0.06, aspect: 1.4 + random() * 0.25,
     }));
     const states: WindowState[] = initialSlots.map((slot, id) => {
       const shape = createWindow();
@@ -149,10 +155,11 @@ export function SpatialWindows({ onPhase }: { onPhase: (phase: number) => void }
         state.group.visible = !compact || state.id < 2;
         state.group.rotation.z = 0;
         const messy = scatter[state.id]!;
+        const openingWidth = Math.min(viewportWidth * (compact ? 0.88 : messy.width), viewportHeight * 0.92);
         state.currentRect = introPending ? {
-          x: (compact ? (state.id % 2 === 0 ? -0.08 : 0.08) : messy.x - 0.5) * viewportWidth,
-          y: (compact ? (state.id % 2 === 0 ? 0.18 : -0.15) : 0.5 - messy.y) * viewportHeight,
-          width: viewportWidth * (compact ? 0.85 + messy.width * 0.15 : messy.width), height: viewportHeight * messy.height,
+          x: (compact ? (state.id % 2 === 0 ? -0.025 : 0.025) : messy.x - 0.5) * viewportWidth,
+          y: (compact ? (state.id % 2 === 0 ? 0.08 : -0.08) : 0.5 - messy.y) * viewportHeight,
+          width: openingWidth, height: openingWidth / messy.aspect,
         } : resolveRect(state);
         state.fromRect = { ...state.currentRect };
         state.targetRect = { ...state.currentRect };
