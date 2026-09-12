@@ -3,20 +3,16 @@ import { createRoot } from "react-dom/client";
 import { ArrowDownToLine } from "lucide-react";
 import glintMark from "../../../brand/Glint.icon/Assets/mark.svg?url";
 import "./styles.css";
-import { studyFromSearch } from "./motionStudies";
 
 const SpatialWindows = lazy(() =>
   import("./SpatialWindows").then((module) => ({ default: module.SpatialWindows })),
 );
 
-const study = import.meta.env.DEV ? studyFromSearch(window.location.search) : 0;
-const MotionStudy = lazy(() => import("./MotionStudy").then((module) => ({ default: module.MotionStudy })));
-
 function App() {
   return (
-    <main className="page" data-motion={study || undefined}>
+    <main className="page">
       <Suspense fallback={null}>
-        <>{study ? <MotionStudy study={study} /> : <SpatialWindows />}</>
+        <SpatialWindows />
       </Suspense>
       <div className="hero-blur" aria-hidden="true" />
       <section className="hero" aria-labelledby="hero-title">

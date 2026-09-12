@@ -1,26 +1,16 @@
 import { useEffect, useRef } from "react";
-import {
-  CircleGeometry, Group, Mesh, MeshBasicMaterial, OrthographicCamera,
-  Scene, Shape, ShapeGeometry, WebGLRenderer,
-} from "three";
-import type { Material, Object3D } from "three";
-import { initialLayout, planRelocation, regions } from "./windowLayout";
-import type { Divider, LayoutRect, Placement } from "./windowLayout";
+import { CircleGeometry, Group, Mesh, MeshBasicMaterial, OrthographicCamera, Scene, WebGLRenderer } from "three";
+import type { BufferGeometry, Material, Object3D } from "three";
+import { initialLayout, regions, planRelocation } from "./windowLayout";
+import type { LayoutRect } from "./windowLayout";
+import { initialLooseLayout, looseWindowCells, followLooseLayout } from "./localWindowLayout";
+import { createRoundedWindowGeometry, updateRoundedWindowGeometry } from "./roundedWindowGeometry";
 
 type WindowRect = LayoutRect;
 type WindowShape = { group: Group; fill: Mesh; lights: Mesh[]; materials: Material[] };
 type WindowState = WindowShape & {
-  id: number;
-  active: boolean;
-  slot: number;
-  phase: "move" | "close" | "spawn";
-  fromRotation: number;
-  currentRect: WindowRect;
-  fromRect: WindowRect;
-  targetRect: WindowRect;
-  startedAt: number;
-  duration: number;
-  moving: boolean;
+  id: number; slot: number; currentRect: WindowRect; fromRect: WindowRect;
+  targetRect: WindowRect; fromRotation: number; startedAt: number; duration: number; moving: boolean;
 };
 
 function interpolateRect(from: WindowRect, to: WindowRect, progress: number): WindowRect {
@@ -32,29 +22,13 @@ function interpolateRect(from: WindowRect, to: WindowRect, progress: number): Wi
   };
 }
 
-function roundedRectangleShape(width: number, height: number, radius: number) {
-  const shape = new Shape();
-  const halfWidth = width / 2;
-  const halfHeight = height / 2;
-  const resolvedRadius = Math.min(radius, halfWidth, halfHeight);
-  shape.moveTo(-halfWidth + resolvedRadius, -halfHeight);
-  shape.lineTo(halfWidth - resolvedRadius, -halfHeight);
-  shape.quadraticCurveTo(halfWidth, -halfHeight, halfWidth, -halfHeight + resolvedRadius);
-  shape.lineTo(halfWidth, halfHeight - resolvedRadius);
-  shape.quadraticCurveTo(halfWidth, halfHeight, halfWidth - resolvedRadius, halfHeight);
-  shape.lineTo(-halfWidth + resolvedRadius, halfHeight);
-  shape.quadraticCurveTo(-halfWidth, halfHeight, -halfWidth, halfHeight - resolvedRadius);
-  shape.lineTo(-halfWidth, -halfHeight + resolvedRadius);
-  shape.quadraticCurveTo(-halfWidth, -halfHeight, -halfWidth + resolvedRadius, -halfHeight);
-  return shape;
-}
-
 function createWindow(): WindowShape {
   const group = new Group();
   const materials: Material[] = [];
   const fillMaterial = new MeshBasicMaterial({ color: 0xf7f7f7, transparent: true, opacity: 0 });
-  const fill = new Mesh(new ShapeGeometry(), fillMaterial);
+  const fill = new Mesh(createRoundedWindowGeometry(), fillMaterial);
   fill.position.z = -0.01;
+  fill.userData.cornerRadius = 0.18;
   materials.push(fillMaterial);
   group.add(fill);
 
@@ -76,11 +50,11 @@ function setWindowRect(windowState: WindowShape, rect: WindowRect) {
   windowState.group.position.y = rect.y;
   // Position-only movement can reuse its geometry.
   const size = windowState.fill.userData;
-  if (size.width !== rect.width || size.height !== rect.height) {
-    windowState.fill.geometry.dispose();
-    windowState.fill.geometry = new ShapeGeometry(roundedRectangleShape(rect.width, rect.height, 0.18));
+  if (size.width !== rect.width || size.height !== rect.height || size.lastRadius !== size.cornerRadius) {
+    updateRoundedWindowGeometry(windowState.fill.geometry, rect.width, rect.height, size.cornerRadius);
     size.width = rect.width;
     size.height = rect.height;
+    size.lastRadius = size.cornerRadius;
   }
   windowState.lights.forEach((light, lightIndex) => {
     light.position.set(-rect.width / 2 + 0.25 + lightIndex * 0.22, titlebarY + 0.17, 0);
@@ -93,103 +67,84 @@ function easeOutCubic(value: number) {
 
 export function SpatialWindows() {
   const mountRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount) return;
     const motionPreference = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const scene = new Scene();
+    const pointerPreference = window.matchMedia("(hover: hover) and (pointer: fine)");
+    const pointer = { x: 0, y: 0, active: false, hovered: -1 };
+    let seed = 271828;
+    const random = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+    const layout = initialLooseLayout(random);
+    const mobileLayout = initialLayout();
+    const initialSlots = [0, 1, 2, 4, 5];
+    let localBand = 0;
+    let clock = 0;
+    let lastTime = 0;
+    let nextMoveAt = Infinity;
+    let frame = 0;
+    let disposed = false;
+    let compact = false;
+    let wasCompact = false;
+    let introPending = !motionPreference.matches;
     const viewportHeight = 10;
     let viewportWidth = viewportHeight;
-    let compact = false;
+    let viewportPixelHeight = Math.max(mount.clientHeight, 1);
+    const scene = new Scene();
     const camera = new OrthographicCamera(-5, 5, 5, -5, 0.1, 100);
     camera.position.z = 10;
-
     let renderer: WebGLRenderer;
     try {
       renderer = new WebGLRenderer({ alpha: true, antialias: true, powerPreference: "low-power" });
-    } catch {
-      return;
-    }
+    } catch { return; }
     renderer.setClearColor(0xffffff, 0);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     renderer.domElement.setAttribute("aria-hidden", "true");
     renderer.domElement.tabIndex = -1;
     mount.appendChild(renderer.domElement);
-
-    // Scatter across the whole desktop, with varied sizes and natural overlap.
-    // Generate once so resize preserves the opening composition.
-    const scatter = Array.from({ length: 6 }, (_, index) => ({
-      x: 0.24 + (index % 3) * 0.25 + (Math.random() - 0.5) * 0.12,
-      y: 0.32 + Math.floor(index / 3) * 0.3 + (Math.random() - 0.5) * 0.16,
-      width: 0.29 + Math.random() * 0.17,
-      height: 0.32 + Math.random() * 0.2,
+    const scatter = Array.from({ length: 5 }, () => ({
+      x: 0.3 + random() * 0.4, y: 0.34 + random() * 0.32,
+      width: 0.18 + random() * 0.17, height: 0.32 + random() * 0.2,
     }));
-    let introPending = !motionPreference.matches;
-    const layout = initialLayout();
-    const windowStates: WindowState[] = Array.from({ length: 6 }, (_, index) => {
+    const states: WindowState[] = initialSlots.map((slot, id) => {
       const shape = createWindow();
-      const rect = { x: 0, y: 0, width: 1, height: 1 };
       shape.materials.forEach((material) => { material.opacity = 1; });
-      shape.group.position.z = index * 0.03;
+      shape.group.position.z = id * 0.03;
       scene.add(shape.group);
-      return { ...shape, id: index, active: [0, 1, 2, 4].includes(index), slot: index,
-        phase: "move", fromRotation: 0, currentRect: rect, fromRect: rect, targetRect: rect,
-        startedAt: 0, duration: 0.4, moving: false };
+      const rect = { x: 0, y: 0, width: 1, height: 1 };
+      return { ...shape, id, slot, currentRect: rect, fromRect: rect, targetRect: rect,
+        fromRotation: 0, startedAt: 0, duration: 0.58, moving: false };
     });
-    const visibleStates = () => windowStates.filter((state) => state.active && (!compact || state.id < 2));
-    const occupied = (): Placement[] => visibleStates().map(({ id, slot }) => ({ id, slot }));
-    const cells = () => regions(layout, compact, Math.min(0.2, 1.1 / viewportWidth), 0.2);
-    const resolveRect = (state: WindowState): WindowRect => {
-      const slot = cells()[state.slot] ?? cells()[0]!;
-      const outerInset = 0.22;
-      const gap = 0.18;
-      const usableWidth = viewportWidth - outerInset * 2;
-      // The canvas already reserves the footer gap; do not add a second bottom inset.
-      const usableHeight = viewportHeight - outerInset + gap / 2;
-      return {
-        x: -viewportWidth / 2 + outerInset + (slot.x + slot.width / 2) * usableWidth,
-        y: viewportHeight / 2 - outerInset - (slot.y + slot.height / 2) * usableHeight,
-        width: slot.width * usableWidth - gap,
-        height: slot.height * usableHeight - gap,
-      };
-    };
-
-    let frame = 0;
-    let timer = 0;
-    let beatIndex = 0;
-    const pending: (() => void)[] = [];
-    let wasCompact = false;
-    let restAfterMovement = 0.85;
-    let disposed = false;
+    const visible = () => states.filter((state) => !compact || state.id < 2);
     const canAnimate = () => !disposed && !motionPreference.matches && !document.hidden;
     const render = () => renderer.render(scene, camera);
-    const cancel = () => {
-      window.cancelAnimationFrame(frame);
-      window.clearTimeout(timer);
+    const resolveRect = (state: WindowState): WindowRect => {
+      const cells = compact ? regions(mobileLayout, true) : looseWindowCells(layout);
+      const slot = cells[state.slot] ?? cells[0]!;
+      const gap = 10 * viewportHeight / viewportPixelHeight;
+      const width = viewportWidth - 0.44;
+      const height = viewportHeight - 0.22 + gap / 2;
+      return { x: -viewportWidth / 2 + 0.22 + (slot.x + slot.width / 2) * width,
+        y: viewportHeight / 2 - 0.22 - (slot.y + slot.height / 2) * height,
+        width: slot.width * width - gap, height: slot.height * height - gap };
     };
+    const normalizedPointerY = () => (viewportHeight / 2 - 0.22 - pointer.y)
+      / (viewportHeight - 0.22 + 5 * viewportHeight / viewportPixelHeight);
+    const resetPointer = () => { pointer.active = false; pointer.hovered = -1; };
+    const cancel = () => { window.cancelAnimationFrame(frame); frame = 0; nextMoveAt = Infinity; };
     const settle = () => {
-      pending.length = 0;
-      // Re-establish unique ownership when switching between two and six cells.
       if (wasCompact !== compact) {
-        windowStates.forEach((state) => {
-          state.slot = state.id;
-          state.active = [0, 1, 2, 4].includes(state.id);
-        });
+        states.forEach((state) => { state.slot = compact ? state.id : initialSlots[state.id]!; });
         wasCompact = compact;
       }
-      windowStates.forEach((state, index) => {
-        state.group.visible = state.active && (!compact || index < 2);
-        state.group.scale.setScalar(1);
+      states.forEach((state) => {
+        state.group.visible = !compact || state.id < 2;
         state.group.rotation.z = 0;
-        state.materials.forEach((material) => { material.opacity = 1; });
-        state.phase = "move";
-        const messy = scatter[index]!;
+        const messy = scatter[state.id]!;
         state.currentRect = introPending ? {
-          x: (compact ? (index % 2 === 0 ? -0.08 : 0.08) : messy.x - 0.5) * viewportWidth,
-          y: (compact ? (index % 2 === 0 ? 0.18 : -0.15) : 0.5 - messy.y) * viewportHeight,
-          width: viewportWidth * (compact ? 0.78 : messy.width),
-          height: viewportHeight * messy.height,
+          x: (compact ? (state.id % 2 === 0 ? -0.08 : 0.08) : messy.x - 0.5) * viewportWidth,
+          y: (compact ? (state.id % 2 === 0 ? 0.18 : -0.15) : 0.5 - messy.y) * viewportHeight,
+          width: viewportWidth * (compact ? 0.78 : messy.width), height: viewportHeight * messy.height,
         } : resolveRect(state);
         state.fromRect = { ...state.currentRect };
         state.targetRect = { ...state.currentRect };
@@ -197,253 +152,140 @@ export function SpatialWindows() {
         setWindowRect(state, state.currentRect);
       });
     };
-    const schedule = (seconds: number) => {
-      if (!canAnimate()) return;
-      timer = window.setTimeout(() => {
-        if (!canAnimate()) return;
-        if (introPending) beginOpening();
-        else if (pending.length) pending.shift()!();
-        else beginBeat();
-      }, seconds * 1000);
-      if (introPending) frame = window.requestAnimationFrame(animate);
+    const beginMove = (state: WindowState, delay = 0) => {
+      state.fromRect = { ...state.currentRect };
+      state.fromRotation = state.group.rotation.z;
+      state.startedAt = clock + delay;
+      state.duration = 0.58;
+      state.moving = true;
     };
-    const animate = (now: number) => {
+    const beginOpening = () => {
+      introPending = false;
+      visible().forEach((state) => beginMove(state,
+        (Math.floor(state.id / 2) * 0.38 + (state.id % 2) * 0.14) * 1000));
+    };
+    const relocate = () => {
+      const owners = visible().map(({ id, slot }) => ({ id, slot }));
+      const vacancies = Array.from({ length: compact ? 2 : 6 }, (_, slot) => slot)
+        .filter((slot) => !owners.some((owner) => owner.slot === slot));
+      const candidates = owners.filter((owner) => owner.id !== pointer.hovered);
+      if (!vacancies.length || !candidates.length) { nextMoveAt = clock + 1000; return; }
+      const source = candidates[Math.floor(random() * candidates.length)]!;
+      const target = vacancies[Math.floor(random() * vacancies.length)]!;
+      const placement = planRelocation(owners, source.id, target, compact ? 2 : 6)[0]?.[0];
+      if (!placement) { nextMoveAt = clock + 1000; return; }
+      states.forEach((state) => { state.group.position.z = state.id * 0.03; });
+      const state = states[placement.id]!;
+      state.slot = placement.slot;
+      state.group.position.z = 1;
+      beginMove(state);
+    };
+    const animate = (timestamp: number) => {
       if (!canAnimate()) return;
+      const elapsed = lastTime ? Math.min(timestamp - lastTime, 50) : 16;
+      lastTime = timestamp;
+      clock += elapsed;
+      if (clock >= nextMoveAt) {
+        nextMoveAt = Infinity;
+        if (introPending) beginOpening(); else relocate();
+      }
       if (introPending) {
-        windowStates.forEach((state, index) => {
-          if (!state.group.visible) return;
-          const time = now / 1000;
-          const phase = index * 1.7;
-          state.currentRect = {
-            ...state.fromRect,
-            x: state.fromRect.x + Math.sin(time * 1.05 + phase) * 0.045,
-            y: state.fromRect.y + Math.sin(time * 1.3 + phase) * 0.085,
-          };
-          state.group.rotation.z = Math.sin(time * 0.8 + phase) * 0.012;
+        visible().forEach((state) => {
+          const phase = state.id * 1.7;
+          state.currentRect = { ...state.fromRect,
+            x: state.fromRect.x + Math.sin(clock / 1000 * 1.05 + phase) * 0.045,
+            y: state.fromRect.y + Math.sin(clock / 1000 * 1.3 + phase) * 0.085 };
+          state.group.rotation.z = Math.sin(clock / 1000 * 0.8 + phase) * 0.012;
           setWindowRect(state, state.currentRect);
         });
-        render();
-        frame = window.requestAnimationFrame(animate);
-        return;
-      }
-      let moving = false;
-      windowStates.forEach((state) => {
-        if (!state.moving) return;
-        const raw = Math.min(Math.max((now - state.startedAt) / (state.duration * 1000), 0), 1);
-        const progress = state.phase === "close" ? raw * raw : easeOutCubic(raw);
-        state.currentRect = interpolateRect(state.fromRect, state.targetRect, progress);
-        setWindowRect(state, state.currentRect);
-        state.group.rotation.z = state.fromRotation * (1 - progress);
-        if (state.phase === "close" || state.phase === "spawn") {
-          const appearance = state.phase === "close" ? 1 - progress : progress;
-          state.group.scale.setScalar(0.08 + appearance * 0.92);
-          state.materials.forEach((material) => { material.opacity = appearance; });
+      } else {
+        // Input is never gated on travel. Shared layout and moving destinations
+        // update in the same frame; translation and size finish together.
+        if (pointer.active) {
+          const x = (pointer.x + viewportWidth / 2 - 0.22) / (viewportWidth - 0.44);
+          const y = normalizedPointerY();
+          const follow = 1 - Math.exp(-elapsed / 1000 * 26);
+          if (compact) mobileLayout.rows += (Math.max(0.2, Math.min(0.8, y)) - mobileLayout.rows) * follow;
+          else followLooseLayout(layout, x, y, localBand, follow);
         }
-        state.moving = raw < 1;
-        if (raw === 1 && state.phase === "close") {
-          state.group.visible = false;
-        } else if (raw === 1 && state.phase === "spawn") {
-          state.phase = "move";
-          state.group.scale.setScalar(1);
-        }
-        moving ||= state.moving;
-      });
-      render();
-      if (moving) frame = window.requestAnimationFrame(animate);
-      else schedule(pending.length ? 0.1 : restAfterMovement);
-    };
-    function beginOpening() {
-      if (!canAnimate()) return;
-      introPending = false;
-      window.cancelAnimationFrame(frame);
-      const now = performance.now();
-      windowStates.forEach((state, index) => {
-        if (!state.group.visible) return;
-        state.fromRect = { ...state.currentRect };
-        state.fromRotation = state.group.rotation.z;
-        state.targetRect = resolveRect(state);
-        state.startedAt = now + (Math.floor(index / 2) * 0.38 + (index % 2) * 0.14) * 1000;
-        state.duration = 0.58;
-        state.moving = true;
-      });
-      restAfterMovement = 0.7;
-      frame = window.requestAnimationFrame(animate);
-    }
-
-    function transition(states: WindowState[], duration = 0.48, targets?: WindowRect[]) {
-      const now = performance.now();
-      states.forEach((state, index) => {
-        state.fromRect = { ...state.currentRect };
-        state.targetRect = targets?.[index] ?? resolveRect(state);
-        state.fromRotation = 0;
-        state.startedAt = now;
-        state.duration = duration;
-        state.moving = true;
-      });
-      frame = window.requestAnimationFrame(animate);
-    }
-
-    function resizeBoundary(divider: Divider, ratio: number) {
-      layout[divider] = ratio;
-      // Every affected neighbor shares the same clock/easing. Delaying even one
-      // would let the growing side overrun the shrinking side mid-animation.
-      visibleStates().forEach((state) => { state.phase = "move"; });
-      transition(visibleStates(), 0.46);
-    }
-
-    function queueTravel(placements: Placement[]) {
-      const movers = placements.map(({ id }) => windowStates[id]!);
-      // Fit inside both source and destination before crossing the desktop.
-      // Growth happens after arrival, wholly inside the reserved empty region.
-      const targets = placements.map(({ slot }, index) => resolveRect({ ...movers[index]!, slot }));
-      const travelSizes = targets.map((target, index) => ({
-        width: Math.min(target.width, movers[index]!.currentRect.width),
-        height: Math.min(target.height, movers[index]!.currentRect.height),
-      }));
-      const needsFit = movers.some((state, index) =>
-        state.currentRect.width > travelSizes[index]!.width + 0.001
-        || state.currentRect.height > travelSizes[index]!.height + 0.001);
-      if (needsFit) pending.push(() => transition(movers, 0.24,
-        movers.map((state, index) => ({ ...state.currentRect, ...travelSizes[index]! }))));
-      pending.push(() => {
-        placements.forEach(({ slot }, index) => {
-          movers[index]!.slot = slot;
-          movers[index]!.group.position.z = 1 + index * 0.03;
+        const hadMovement = states.some((state) => state.moving);
+        visible().forEach((state) => {
+          state.targetRect = resolveRect(state);
+          if (state.moving) {
+            const raw = Math.min(Math.max((clock - state.startedAt) / (state.duration * 1000), 0), 1);
+            const progress = easeOutCubic(raw);
+            state.currentRect = interpolateRect(state.fromRect, state.targetRect, progress);
+            state.group.rotation.z = state.fromRotation * (1 - progress);
+            state.moving = raw < 1;
+          } else state.currentRect = state.targetRect;
+          setWindowRect(state, state.currentRect);
         });
-        transition(movers, 0.52, targets.map((target, index) => ({ ...target, ...travelSizes[index]! })));
-      });
-      if (targets.some((target, index) => target.width > travelSizes[index]!.width + 0.001
-        || target.height > travelSizes[index]!.height + 0.001)) {
-        pending.push(() => transition(movers, 0.28, targets));
+        if (hadMovement && !states.some((state) => state.moving)) nextMoveAt = clock + 1000 + random() * 900;
       }
-    }
-
-    function beginRelocation() {
-      const owners = occupied();
-      const capacity = compact ? 2 : 6;
-      const vacancies = Array.from({ length: capacity }, (_, i) => i)
-        .filter((slot) => !owners.some((owner) => owner.slot === slot));
-      if (!vacancies.length) return false;
-      const source = owners[Math.floor(Math.random() * owners.length)]!;
-      const neighbors = owners.filter((owner) => owner.id !== source.id);
-      const target = neighbors.length && Math.random() < 0.65
-        ? neighbors[Math.floor(Math.random() * neighbors.length)]!.slot
-        : vacancies[Math.floor(Math.random() * vacancies.length)]!;
-      const stages = planRelocation(owners, source.id, target, capacity);
-      stages.forEach((stage) => queueTravel(stage));
-      // Two independent moves may share a travel phase when there is room.
-      if (stages.length === 1 && vacancies.length > 1 && neighbors.length && Math.random() < 0.6) {
-        pending.length = 0;
-        const companion = neighbors[Math.floor(Math.random() * neighbors.length)]!;
-        queueTravel([{ id: source.id, slot: target },
-          { id: companion.id, slot: vacancies.find((slot) => slot !== target)! }]);
-      }
-      if (!pending.length) return false;
-      pending.shift()!();
-      return true;
-    }
-
-    function beginLifecycle() {
-      const eligible = windowStates.filter((state) => !compact || state.id < 2);
-      const active = visibleStates();
-      const capacity = compact ? 2 : 6;
-      const vacancies = Array.from({ length: capacity }, (_, i) => i)
-        .filter((slot) => !active.some((state) => state.slot === slot));
-      const closed = eligible.filter((state) => !state.active);
-      const shouldOpen = active.length <= (compact ? 1 : 3)
-        || (active.length < (compact ? 2 : 5) && Math.random() < 0.55);
-      const choices = shouldOpen ? closed : active;
-      if (!choices.length || (shouldOpen && !vacancies.length)) return false;
-      const state = choices[Math.floor(Math.random() * choices.length)]!;
-      state.active = shouldOpen;
-      state.phase = shouldOpen ? "spawn" : "close";
-      state.group.visible = true;
-      if (shouldOpen) {
-        state.slot = vacancies[Math.floor(Math.random() * vacancies.length)]!;
-        state.currentRect = resolveRect(state);
-      }
-      state.group.scale.setScalar(shouldOpen ? 0.08 : 1);
-      state.materials.forEach((material) => { material.opacity = shouldOpen ? 0 : 1; });
-      transition([state], shouldOpen ? 0.32 : 0.28, [{ ...state.currentRect }]);
-      return true;
-    }
-
-    function beginBeat() {
-      if (!canAnimate()) return;
-      windowStates.forEach((state) => { state.group.position.z = state.id * 0.03; });
-      restAfterMovement = 0.38 + Math.random() * 0.42;
-      const beat = beatIndex++;
-      // Establish the cause/effect with a readable 50/50 → 75/25 opening.
-      if (beat === 0) { resizeBoundary(compact ? "rows" : "top", compact ? 0.6 : 0.75); return; }
-      if (beat % 5 === 4 && beginLifecycle()) return;
-      if (beat % 3 === 2 && beginRelocation()) return;
-      const dividers: Divider[] = compact ? ["rows"] : ["top", "rows", "bottom", "lowerLeft", "lowerRight"];
-      const before = cells();
-      const choices = dividers.flatMap((divider) => (divider === "top" || divider === "bottom"
-        ? [0.25, 0.5, 0.75] : [0.2, 0.4, 0.6, 0.8])
-        .filter((ratio) => Math.abs(ratio - layout[divider]) > 0.1)
-        .map((ratio) => ({ divider, ratio })))
-        .filter(({ divider, ratio }) => {
-          const after = regions({ ...layout, [divider]: ratio }, compact, Math.min(0.2, 1.1 / viewportWidth), 0.2);
-          return visibleStates().some(({ slot }) => {
-            const a = before[slot]!;
-            const b = after[slot]!;
-            return Math.max(Math.abs(a.width - b.width), Math.abs(a.height - b.height)) > 0.14;
-          });
-        });
-      const choice = choices[Math.floor(Math.random() * choices.length)];
-      if (choice) resizeBoundary(choice.divider, choice.ratio);
-      else schedule(0.4);
-    }
-
-    const resize = () => {
-      cancel();
-      const width = Math.max(mount.clientWidth, 1);
-      const height = Math.max(mount.clientHeight, 1);
-      compact = width < 620;
-      viewportWidth = viewportHeight * width / height;
-      renderer.setSize(width, height, false);
-      camera.left = -viewportWidth / 2;
-      camera.right = viewportWidth / 2;
-      camera.updateProjectionMatrix();
-      windowStates.forEach((state, index) => { state.group.visible = !compact || index < 2; });
-      settle();
       render();
-      schedule(introPending ? 1.45 : 0.85);
+      frame = window.requestAnimationFrame(animate);
     };
-    const resume = () => {
-      cancel();
-      // Reduced motion shows the settled desktop, without playing the entrance.
+    const movePointer = (event: PointerEvent) => {
+      if (!canAnimate() || event.pointerType !== "mouse" || !pointerPreference.matches
+        || (event.target instanceof Element && event.target.closest("footer"))) { resetPointer(); return; }
+      const bounds = mount.getBoundingClientRect();
+      if (event.clientY < bounds.top || event.clientY > bounds.bottom) { resetPointer(); return; }
+      pointer.x = ((event.clientX - bounds.left) / bounds.width - 0.5) * viewportWidth;
+      pointer.y = (0.5 - (event.clientY - bounds.top) / bounds.height) * viewportHeight;
+      pointer.active = true;
+      if (!compact) {
+        const y = normalizedPointerY();
+        const cuts = layout.rows;
+        if (Math.min(Math.abs(y - cuts[0]!), Math.abs(y - cuts[1]!)) > 0.02)
+          localBand = y < cuts[0]! ? 0 : y < cuts[1]! ? 1 : 2;
+      }
+      pointer.hovered = visible().find((state) => {
+        const rect = resolveRect(state);
+        return Math.abs(rect.x - pointer.x) < rect.width / 2 && Math.abs(rect.y - pointer.y) < rect.height / 2;
+      })?.id ?? -1;
+    };
+    const restart = () => {
+      cancel(); resetPointer();
       if (motionPreference.matches) introPending = false;
-      // No catch-up burst after switching tabs or changing motion preferences.
-      settle();
-      render();
-      schedule(introPending ? 1.45 : 0.85);
+      settle(); render(); lastTime = 0;
+      if (canAnimate()) { nextMoveAt = clock + (introPending ? 1450 : 850); frame = window.requestAnimationFrame(animate); }
+    };
+    const resize = () => {
+      const width = Math.max(mount.clientWidth, 1);
+      viewportPixelHeight = Math.max(mount.clientHeight, 1);
+      compact = width < 620;
+      viewportWidth = viewportHeight * width / viewportPixelHeight;
+      renderer.setSize(width, viewportPixelHeight, false);
+      camera.left = -viewportWidth / 2; camera.right = viewportWidth / 2;
+      camera.updateProjectionMatrix();
+      states.forEach((state) => { state.fill.userData.cornerRadius = 12 * viewportHeight / viewportPixelHeight; });
+      restart();
     };
     const observer = new ResizeObserver(resize);
     observer.observe(mount);
-    motionPreference.addEventListener("change", resume);
-    document.addEventListener("visibilitychange", resume);
+    window.addEventListener("pointermove", movePointer, { passive: true });
+    window.addEventListener("blur", resetPointer);
+    document.documentElement.addEventListener("pointerleave", resetPointer);
+    pointerPreference.addEventListener("change", restart);
+    motionPreference.addEventListener("change", restart);
+    document.addEventListener("visibilitychange", restart);
     resize();
-
     return () => {
-      disposed = true;
-      cancel();
-      observer.disconnect();
-      motionPreference.removeEventListener("change", resume);
-      document.removeEventListener("visibilitychange", resume);
-      windowStates.forEach((state) => {
-        const geometries = new Set<ShapeGeometry | CircleGeometry>();
-        state.group.traverse((object: Object3D) => {
-          if (object instanceof Mesh) geometries.add(object.geometry);
-        });
+      disposed = true; cancel(); observer.disconnect();
+      window.removeEventListener("pointermove", movePointer);
+      window.removeEventListener("blur", resetPointer);
+      document.documentElement.removeEventListener("pointerleave", resetPointer);
+      pointerPreference.removeEventListener("change", restart);
+      motionPreference.removeEventListener("change", restart);
+      document.removeEventListener("visibilitychange", restart);
+      states.forEach((state) => {
+        const geometries = new Set<BufferGeometry>();
+        state.group.traverse((object: Object3D) => { if (object instanceof Mesh) geometries.add(object.geometry); });
         geometries.forEach((geometry) => geometry.dispose());
         state.materials.forEach((material) => material.dispose());
       });
-      renderer.dispose();
-      mount.removeChild(renderer.domElement);
+      renderer.dispose(); mount.removeChild(renderer.domElement);
     };
   }, []);
-
   return <div className="spatial-background" ref={mountRef} aria-hidden="true" />;
 }

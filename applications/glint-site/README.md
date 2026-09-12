@@ -4,13 +4,11 @@ Minimal single-viewport marketing site built with React 19, TypeScript, Vite 7 a
 
 The site imports the approved canonical `brand/Glint.icon/Assets/mark.svg`; GLNT-23 is complete.
 
-The background starts with a gently floating, messy desktop and settles into shared regions. A partition tree owns the space: changing a boundary resizes its neighbors together, including 50/50 → 75/25 pairs and coordinated vertical resizing. The same easing and clock apply to every affected window, so resizing cannot produce overlaps. Settled widths use quarter-screen steps and heights use 20% steps. Quantization applies to the actual screen dimensions, including nested regions, to prevent tiny windows and negligible resize steps. Empty regions and gutters leave breathing room; the desktop has three to five windows across six available anchors.
+The background opens with five varied windows floating around the center, then settles into six adjoining regions with one vacancy. Windows periodically move into that vacancy, resizing and translating in one transition to fill their destination on arrival. Each row has its own continuously adjustable width split; nearby rows share height boundaries. Cursor input remains active during moves. Gaps are 10 CSS pixels and corners are 12 CSS pixels. A fixed rounded mesh updates in place during resizing.
 
-Relocation reserves an empty destination. If occupied, its owner first relocates to a vacancy; the incoming window follows once the destination is clear. Windows fit within their source before travel and grow within the reserved region after arrival. Transit may cross other windows, while settled frames remain disjoint. Independent relocations can travel together when separate vacancies exist. Opening and closing use vacant regions and never interrupt a layout operation.
+The hero stays still. Mouse interaction requires a fine hovering pointer; reduced motion shows a static composition, and hidden tabs suspend animation. Compact screens show two windows. Shared layout constraints preserve minimum sizes and separation while settled; moving windows may cross others during transit. This is illustrative marketing behavior, not an assertion that the native app automatically resizes its neighbors.
 
-This neighbor-aware choreography is an illustrative marketing behavior, not an assertion that the native app automatically resizes other windows. The new drop shadows have been removed. The existing feathered hero blur remains for text legibility. Reduced motion shows a settled composition; resize, tab visibility and preference changes discard pending choreography safely. Mobile uses two vertical regions.
-
-Run `node --test applications/glint-site/tests/windowLayout.test.mjs` from the repository root with Node 22.18+ to verify the layout and relocation invariants.
+Run `node --test applications/glint-site/tests/windowLayout.test.mjs` to check layouts, vacancies and rounded-mesh resizing. The final animation is used in development and production. There are no variation routes or experiment controls.
 
 ## Production deployment
 
